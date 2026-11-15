@@ -31,7 +31,7 @@ def seed():
             phone="+91 98765 43210",
             city="Coimbatore",
             age=75,
-            photo_url="https://images.unsplash.com/photo-1544717305-2782549b5136?w=200&auto=format&fit=crop&q=80"
+            photo_url="https://images.unsplash.com/photo-1727179299533-c5fd6092851c?w=200&h=200&auto=format&fit=crop&crop=face&q=80"
         )
         # 2. Son: Arun (30, Chennai)
         arun = User(
