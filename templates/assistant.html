@@ -239,7 +239,8 @@ async function handleChatSubmit(e) {
         const response = await fetch('/assistant/chat', {
             method: 'POST',
             headers: {
-                'Content-Type': 'application/json'
+                'Content-Type': 'application/json',
+                'X-CSRF-Token': (typeof getCsrfToken === 'function') ? getCsrfToken() : ''
             },
             body: JSON.stringify({ question: question })
         });

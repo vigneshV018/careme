@@ -176,6 +176,15 @@
         <!-- ===================================================================== -->
         <div id="results-section" class="hidden space-y-5 pt-2">
             
+            <!-- Sample Result Badge (when AI key not configured) -->
+            <div id="sample-fallback-badge" class="hidden bg-indigo-50 border-2 border-indigo-200 text-indigo-900 text-xs font-bold px-4 py-2.5 rounded-2xl flex items-center gap-2.5 shadow-sm">
+                <i class="fa-solid fa-flask-vial text-indigo-600 text-base"></i>
+                <div>
+                    <span class="font-extrabold uppercase text-[10px] tracking-wider bg-indigo-200 text-indigo-900 px-2 py-0.5 rounded-full mr-1.5">Notice</span>
+                    <span>Sample result (AI key not configured)</span>
+                </div>
+            </div>
+
             <!-- Mandatory Doctor Verification Alert -->
             <div class="bg-amber-50 border-2 border-amber-300 rounded-2xl p-4 flex items-start gap-3 shadow-sm">
                 <div class="w-8 h-8 rounded-xl bg-amber-500 text-white flex items-center justify-center text-base flex-shrink-0 mt-0.5">
@@ -718,10 +727,15 @@ async function triggerGeminiScan() {
 
     const formData = new FormData();
     formData.append('file', currentSelectedFile);
+    const csrfVal = (typeof getCsrfToken === 'function') ? getCsrfToken() : '';
+    if (csrfVal) formData.append('csrf_token', csrfVal);
 
     try {
         const response = await fetch('/medicines/scan', {
             method: 'POST',
+            headers: {
+                'X-CSRF-Token': csrfVal
+            },
             body: formData
         });
 
@@ -732,6 +746,14 @@ async function triggerGeminiScan() {
 
         if (response.ok && data.success && data.items && data.items.length > 0) {
             populateEditableTable(data.items);
+            const sampleBadge = document.getElementById('sample-fallback-badge');
+            if (sampleBadge) {
+                if (data.is_demo_fallback) {
+                    sampleBadge.classList.remove('hidden');
+                } else {
+                    sampleBadge.classList.add('hidden');
+                }
+            }
             resultsSection.classList.remove('hidden');
             // Scroll to results
             resultsSection.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
@@ -923,7 +945,8 @@ async function saveConfirmedMedicines() {
         const response = await fetch('/medicines/confirm-batch', {
             method: 'POST',
             headers: {
-                'Content-Type': 'application/json'
+                'Content-Type': 'application/json',
+                'X-CSRF-Token': (typeof getCsrfToken === 'function') ? getCsrfToken() : ''
             },
             body: JSON.stringify({ medicines: payloadMedicines })
         });

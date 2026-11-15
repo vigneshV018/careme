@@ -205,6 +205,12 @@ uvicorn main:app --reload
 ```
 Open **`http://127.0.0.1:8000`** in your browser.
 
+### 4. How to Run Tests
+CareMe includes an automated test suite verifying persona login flows, PIN authentication, session persistence, 3xx redirect integrity, CSRF exemptions, and route protection:
+```bash
+pytest tests/test_login_flows.py -v
+```
+
 > **Database Seeding**:
 > - When `DEMO_MODE=true`: An empty database auto-seeds the demo circle on startup. You can re-seed at any time with `python seed_demo.py`.
 > - When `DEMO_MODE=false`: The database starts empty for real user registrations.
@@ -218,7 +224,7 @@ CareMe is pre-configured for seamless Render deployment:
 1. **Repository**: Push this repository to GitHub/GitLab.
 2. **New Web Service**: Create a new Web Service on [Render](https://render.com).
 3. **Build Command**: `pip install -r requirements.txt`
-4. **Start Command**: `uvicorn main:app --host 0.0.0.0 --port $PORT`
+4. **Start Command**: `uvicorn main:app --host 0.0.0.0 --port $PORT --proxy-headers --forwarded-allow-ips='*'`
 5. **Environment Variables**:
 
 | Variable | Description | Default / Example | Production Required |

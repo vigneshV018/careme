@@ -2,12 +2,15 @@ import time
 import base64
 import hmac
 import hashlib
+import logging
 from passlib.context import CryptContext
 from fastapi import Request, Response, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from database import get_db
 from models import User
 from config import DEMO_MODE, SECRET_KEY
+
+logger = logging.getLogger("careme.auth_service")
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
@@ -20,11 +23,12 @@ def hash_password(password: str) -> str:
     return pwd_context.hash(password)
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
-    if not hashed_password:
+    if not plain_password or not hashed_password:
         return False
     try:
         return pwd_context.verify(plain_password, hashed_password)
-    except Exception:
+    except Exception as e:
+        logger.error(f"Password verification error: {type(e).__name__}: {e}")
         return False
 
 def hash_pin(pin: str) -> str:
@@ -33,11 +37,12 @@ def hash_pin(pin: str) -> str:
     return pwd_context.hash(str(pin).strip())
 
 def verify_pin(plain_pin: str, hashed_pin: str) -> bool:
-    if not hashed_pin:
+    if not plain_pin or not hashed_pin:
         return False
     try:
         return pwd_context.verify(str(plain_pin).strip(), hashed_pin)
-    except Exception:
+    except Exception as e:
+        logger.error(f"PIN verification error: {type(e).__name__}: {e}")
         return False
 
 def is_request_https(request: Request = None) -> bool:

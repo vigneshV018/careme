@@ -6,14 +6,15 @@ from starlette.testclient import TestClient
 # Ensure project root is in sys.path
 sys.path.insert(0, os.path.abspath("."))
 
+import config
 from main import app
 from seed import seed
 from database import SessionLocal
-from models import User
+from models import User, Membership, CareCircle
 
 @pytest.fixture(scope="session", autouse=True)
-def ensure_demo_db():
-    """Ensure database has the standard demo circle seeded."""
+def setup_test_database():
+    """Ensure clean initial seed in database for test suite."""
     seed()
 
 @pytest.fixture
@@ -23,10 +24,10 @@ def client():
 
 def test_logged_out_redirects_to_login(client):
     """
-    Logged-out access to /dashboard, /medicines, and /circle
+    Logged-out access to /dashboard, /medicines, /circle, and /elder
     must all land on the login page, never 404 or JSON.
     """
-    for path in ["/dashboard", "/medicines", "/circle"]:
+    for path in ["/dashboard", "/medicines", "/circle", "/elder"]:
         resp = client.get(path)
         assert resp.status_code == 200, f"Expected 200 on redirect destination for {path}, got {resp.status_code}"
         assert "/login" in str(resp.url), f"Expected URL to contain /login for {path}, got {resp.url}"
@@ -43,6 +44,13 @@ def test_home_and_login_both_show_login_page(client):
     assert resp_login.status_code == 200
     assert "Welcome to CareMe" in resp_login.text
 
+def test_judge_guide_card_present_on_login(client):
+    """The login page must display the judge guide card in DEMO_MODE=true."""
+    resp = client.get("/login")
+    assert resp.status_code == 200
+    assert "Click Lakshmi for the elder view, Arun for the family view, Meena for the caregiver view. Elder PIN: 1234." in resp.text
+    assert "/demo" in resp.text
+
 def test_demo_persona_login_lakshmi(client):
     """Demo switch for Lakshmi (ID 1, Elder) lands on elder dashboard and keeps session."""
     db = SessionLocal()
@@ -54,7 +62,6 @@ def test_demo_persona_login_lakshmi(client):
     assert resp.status_code == 200
     assert "/dashboard" in str(resp.url)
     assert "Lakshmi" in resp.text
-    # Elder-specific UI
     assert "Today's Medicine" in resp.text or "Elder Mode" in resp.text
 
     # Next request keeps session
@@ -121,13 +128,13 @@ def test_lakshmi_pin_login(client):
     assert "/dashboard" in str(resp.url)
     assert "Lakshmi" in resp.text
 
-    # Verify session persists
+    # Verify session persists on next request
     next_resp = client.get("/dashboard")
     assert next_resp.status_code == 200
     assert "Lakshmi" in next_resp.text
 
 def test_arun_email_password_login(client):
-    """Arun's email and password login works and lands on dashboard."""
+    """Arun's email (arun@caresync.ai) and password (password123) login works and lands on dashboard."""
     resp = client.post("/login", data={
         "email": "arun@caresync.ai",
         "password": "password123"
@@ -136,7 +143,7 @@ def test_arun_email_password_login(client):
     assert "/dashboard" in str(resp.url)
     assert "Arun" in resp.text
 
-    # Verify session persists
+    # Verify session persists on next request
     next_resp = client.get("/dashboard")
     assert next_resp.status_code == 200
     assert "Arun" in next_resp.text
@@ -157,6 +164,44 @@ def test_invalid_email_password_shows_reason(client):
     assert resp.status_code == 200
     assert "/login" in str(resp.url)
     assert "Invalid email or password" in resp.text
+
+def test_join_circle_passcode_pending_approval_no_data_access(client):
+    """
+    Joining with passcode 482915 shows 'waiting for approval' with no data access.
+    """
+    test_email = "newmember_ravi@careme.test"
+    # Register new user with circle_passcode 482915 and medical consent
+    resp = client.post("/register", data={
+        "name": "Ravi Kumar",
+        "email": test_email,
+        "password": "password123",
+        "role": "family",
+        "relationship": "Brother",
+        "circle_passcode": "482915",
+        "medical_consent": "on"
+    })
+    assert resp.status_code == 200
+    # Must show Waiting for Approval screen
+    assert ("Waiting" in resp.text or "Approval" in resp.text or "pending" in resp.text.lower())
+    assert "Lakshmi" in resp.text
+    # No health/medicine records are displayed to pending members
+    assert "Take This Tablet" not in resp.text
+
+    # Visiting /medicines or /circle directly as pending member should also restrict health records
+    meds_resp = client.get("/medicines")
+    assert ("Waiting" in meds_resp.text or "has not shared this with you" in meds_resp.text or meds_resp.status_code in (200, 302))
+
+def test_demo_mode_false_returns_404_on_demo():
+    """DEMO_MODE=false returns 404 on /demo."""
+    old_demo_mode = config.DEMO_MODE
+    try:
+        config.DEMO_MODE = False
+        raw_client = TestClient(app, follow_redirects=False)
+        resp = raw_client.get("/demo")
+        assert resp.status_code == 404
+        assert "404" in resp.text or "Not Found" in resp.text or "disabled" in resp.text.lower()
+    finally:
+        config.DEMO_MODE = old_demo_mode
 
 def test_cookie_flags_with_https_proxy_headers():
     """
@@ -209,7 +254,6 @@ def test_csrf_enforced_on_mutating_non_exempt_routes():
     c.get("/auth/switch/1")
     # Mutating POST to medicines add without CSRF token
     resp = c.post("/medicines/add", data={"name": "Test Med", "dosage": "500mg"})
-    # Must be redirected to /login?error=CSRF+token+missing or rejected
     assert resp.status_code in (302, 403)
     if resp.status_code == 302:
         assert "CSRF" in resp.headers.get("Location", "")

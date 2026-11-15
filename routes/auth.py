@@ -12,7 +12,8 @@ from services.auth_service import (
     generate_password_reset_token, verify_password_reset_token
 )
 from services.notification_service import log_activity, create_notification
-from services.rate_limiter import check_login_rate_limit, record_failed_login, reset_login_rate_limit
+from sqlalchemy import func
+from services.rate_limiter import check_login_rate_limit, record_failed_login, reset_login_rate_limit, get_max_attempts
 from services.email_service import send_email
 from services.timezone import now_kolkata
 
@@ -45,6 +46,14 @@ def login_page(request: Request, error: str = None, success: str = None, db: Ses
         "demo_users": demo_users
     })
 
+@router.get("/elder")
+def elder_route_alias(request: Request, db: Session = Depends(get_db)):
+    """Logged-out access lands on login; logged-in lands on dashboard."""
+    user = get_current_user_optional(request, db)
+    if not user:
+        return RedirectResponse(url="/login", status_code=status.HTTP_302_FOUND)
+    return RedirectResponse(url="/dashboard", status_code=status.HTTP_302_FOUND)
+
 @router.post("/login")
 @router.post("/auth/login")
 def login_post(
@@ -56,7 +65,7 @@ def login_post(
 ):
     clean_email = email.strip().lower()
 
-    # Rate limiting: 5 failed tries, then 5 min lockout
+    # Rate limiting: 10 failed tries in DEMO_MODE, 5 in production
     is_locked, remaining_secs = check_login_rate_limit(clean_email)
     if is_locked:
         mins = max(1, (remaining_secs + 59) // 60)
@@ -66,11 +75,13 @@ def login_post(
             status_code=status.HTTP_302_FOUND
         )
 
-    user = db.query(User).filter(User.email == clean_email).first()
+    user = db.query(User).filter(func.lower(User.email) == clean_email).first()
+    max_att = get_max_attempts()
+
     if not user:
         logger.warning(f"Login failed: User with email '{clean_email}' not found")
         attempts, lockout = record_failed_login(clean_email)
-        rem = max(0, 5 - attempts)
+        rem = max(0, max_att - attempts)
         return RedirectResponse(
             url=f"/login?error=Invalid+email+or+password.+({rem}+attempts+remaining)&tab=password",
             status_code=status.HTTP_302_FOUND
@@ -84,7 +95,7 @@ def login_post(
                 url="/login?error=Too+many+failed+login+attempts.+Account+locked+for+5+minutes&tab=password",
                 status_code=status.HTTP_302_FOUND
             )
-        rem = max(0, 5 - attempts)
+        rem = max(0, max_att - attempts)
         return RedirectResponse(
             url=f"/login?error=Invalid+email+or+password.+({rem}+attempts+remaining)&tab=password",
             status_code=status.HTTP_302_FOUND
@@ -117,7 +128,7 @@ def login_pin(
     client_ip = request.client.host if request.client else "unknown"
     rate_key = f"pin:{client_ip}"
 
-    # Rate limiting
+    # Rate limiting: 10 failed tries in DEMO_MODE, 5 in production
     is_locked, remaining_secs = check_login_rate_limit(rate_key)
     if is_locked:
         mins = max(1, (remaining_secs + 59) // 60)

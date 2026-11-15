@@ -1,15 +1,19 @@
 """
 services/rate_limiter.py - Rate Limiting Engine for CareMe Authentication.
-Limits failed login attempts to 5, then imposes a 5-minute lockout window.
+Limits failed login attempts to 10 in DEMO_MODE (5 in production), then imposes a 5-minute lockout window.
 """
 from datetime import datetime, timedelta
 from typing import Dict, Tuple
+from config import DEMO_MODE
 
-MAX_ATTEMPTS = 5
 LOCKOUT_SECONDS = 300  # 5 minutes
 
 # In-memory tracking: {key: {"count": int, "locked_until": datetime | None}}
 _login_attempts: Dict[str, Dict] = {}
+
+def get_max_attempts() -> int:
+    """Returns 10 attempts for DEMO_MODE, 5 for production."""
+    return 10 if DEMO_MODE else 5
 
 def check_login_rate_limit(key: str) -> Tuple[bool, int]:
     """
@@ -36,11 +40,12 @@ def check_login_rate_limit(key: str) -> Tuple[bool, int]:
 
 def record_failed_login(key: str) -> Tuple[int, int]:
     """
-    Records a failed login attempt. If attempts reach MAX_ATTEMPTS, locks for 5 minutes.
+    Records a failed login attempt. If attempts reach max_attempts, locks for 5 minutes.
     Returns: (attempts_count: int, remaining_lockout_seconds: int)
     """
     clean_key = key.strip().lower()
     now = datetime.now()
+    max_attempts = get_max_attempts()
 
     entry = _login_attempts.get(clean_key)
     if not entry:
@@ -48,7 +53,7 @@ def record_failed_login(key: str) -> Tuple[int, int]:
         _login_attempts[clean_key] = entry
 
     entry["count"] += 1
-    if entry["count"] >= MAX_ATTEMPTS:
+    if entry["count"] >= max_attempts:
         entry["locked_until"] = now + timedelta(seconds=LOCKOUT_SECONDS)
         return entry["count"], LOCKOUT_SECONDS
 

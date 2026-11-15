@@ -41,6 +41,7 @@
                 <!-- Regenerate Passcode Button (Elder only) -->
                 {% if user.role == 'elder' or permissions.is_owner %}
                 <form method="POST" action="/circle/regenerate-passcode" class="inline">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token(request) }}">
                     <button type="submit" onclick="return confirm('Regenerate Passcode? Existing members keep access, but any new members must use the new 6-digit code.')"
                         class="bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold px-3 py-2.5 rounded-xl text-xs flex items-center justify-center gap-1.5 transition" title="Generate a fresh 6-digit code">
                         <i class="fa-solid fa-arrows-rotate"></i>
@@ -80,11 +81,13 @@
 
                 <div class="flex items-center gap-2 w-full sm:w-auto">
                     <form method="POST" action="/circle/member/{{ req.id }}/approve" class="flex-1 sm:flex-initial">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token(request) }}">
                         <button type="submit" class="w-full sm:w-auto bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs px-4 py-2.5 rounded-xl shadow transition">
                             <i class="fa-solid fa-check mr-1"></i> Approve
                         </button>
                     </form>
                     <form method="POST" action="/circle/member/{{ req.id }}/decline" class="flex-1 sm:flex-initial">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token(request) }}">
                         <button type="submit" onclick="return confirm('Decline request?')" class="w-full sm:w-auto bg-rose-50 hover:bg-rose-100 text-rose-700 font-bold text-xs px-3 py-2.5 rounded-xl border border-rose-200 transition">
                             <i class="fa-solid fa-xmark mr-1"></i> Decline
                         </button>
@@ -158,6 +161,7 @@
                     {% if user.role == 'elder' or permissions.is_owner %}
                     <div class="flex items-center gap-2">
                         <form method="POST" action="/circle/member/{{ m.id }}/remove" class="inline">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token(request) }}">
                             <button type="submit" onclick="return confirm('Remove {{ m.user.name }} from the care circle?')" class="text-xs font-bold text-rose-600 hover:text-rose-800 hover:bg-rose-50 px-3 py-1.5 rounded-xl border border-rose-200 transition">
                                 <i class="fa-regular fa-trash-can mr-1"></i> Remove
                             </button>
@@ -393,7 +397,8 @@ async function togglePermission(memberId, permName, checkbox) {
         const response = await fetch(`/circle/member/${memberId}/toggle-permission`, {
             method: 'POST',
             headers: {
-                'Content-Type': 'application/json'
+                'Content-Type': 'application/json',
+                'X-CSRF-Token': (typeof getCsrfToken === 'function') ? getCsrfToken() : ''
             },
             body: JSON.stringify({
                 permission: permName,

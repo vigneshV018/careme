@@ -50,25 +50,50 @@ async def lifespan(app: FastAPI):
     logger.info("Initializing CareMe database...")
     Base.metadata.create_all(bind=engine)
     
-    # Auto-seed if database is empty ONLY when DEMO_MODE is true
-    user_count = 0
-    db = SessionLocal()
-    try:
-        user_count = db.query(User).count()
-    except Exception as e:
-        logger.error(f"Error checking database user count: {e}")
-    finally:
-        db.close()
+    # Auto-seed if database is empty ONLY when DEMO_MODE is true, and re-hash demo users
+    from sqlalchemy import func
+    from services.auth_service import hash_password, hash_pin
 
-    if user_count == 0:
-        if config.DEMO_MODE:
-            logger.info("Empty database detected and DEMO_MODE=true. Auto-seeding initial CareMe demo data...")
-            try:
+    if config.DEMO_MODE:
+        db = SessionLocal()
+        try:
+            user_count = db.query(User).count()
+            if user_count == 0:
+                logger.info("Empty database detected and DEMO_MODE=true. Auto-seeding initial CareMe demo data...")
+                db.close()
                 seed()
-            except Exception as e:
-                logger.error(f"Error auto-seeding demo data: {e}")
-        else:
-            logger.info("Empty database detected with DEMO_MODE=false. Fresh production database initialized without demo users.")
+            else:
+                # Re-hash passwords (password123) and PINs (1234) with the current code on startup
+                demo_credentials = {
+                    "lakshmi@caresync.ai": ("password123", "1234"),
+                    "arun@caresync.ai": ("password123", "0000"),
+                    "priya@caresync.ai": ("password123", "0000"),
+                    "meena@caresync.ai": ("password123", "0000"),
+                }
+                for email, (pw, pin) in demo_credentials.items():
+                    u = db.query(User).filter(func.lower(User.email) == email.lower()).first()
+                    if u:
+                        u.password_hash = hash_password(pw)
+                        if pin:
+                            u.pin_hash = hash_pin(pin)
+                db.commit()
+                logger.info("Re-hashed demo passwords (password123) and PINs (1234) with current bcrypt code.")
+        except Exception as e:
+            logger.error(f"Error checking/re-hashing demo users: {e}")
+            db.rollback()
+        finally:
+            try:
+                db.close()
+            except Exception:
+                pass
+    else:
+        db = SessionLocal()
+        try:
+            user_count = db.query(User).count()
+            if user_count == 0:
+                logger.info("Empty database detected with DEMO_MODE=false. Fresh production database initialized without demo users.")
+        finally:
+            db.close()
 
     # Start background scheduler for dose reminders and escalations
     try:

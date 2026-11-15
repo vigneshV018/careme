@@ -104,20 +104,13 @@ def scan_prescription_with_gemini(image_bytes: bytes, mime_type: str = "image/jp
     api_key = os.getenv("GEMINI_API_KEY", GEMINI_API_KEY).strip()
 
     if not api_key or "your-gemini" in api_key.lower():
-        if DEMO_MODE:
-            logger.warning("GEMINI_API_KEY not configured. DEMO_MODE is true: returning demonstration prescription extraction.")
-            return {
-                "success": True,
-                "is_demo_fallback": True,
-                "message": "Demo Mode: GEMINI_API_KEY not configured in .env. Showing sample extracted prescription. Configure your API key for live vision analysis.",
-                "items": get_demo_fallback_items()
-            }
-        else:
-            return {
-                "success": False,
-                "error": "Gemini API key is not configured. Please add GEMINI_API_KEY to your .env file to enable live prescription scanning.",
-                "items": []
-            }
+        logger.warning("GEMINI_API_KEY not configured. Returning sample fallback clearly labeled.")
+        return {
+            "success": True,
+            "is_demo_fallback": True,
+            "message": "Sample result (AI key not configured)",
+            "items": get_demo_fallback_items()
+        }
 
     try:
         from google import genai
