@@ -161,18 +161,39 @@ def _log_to_console(to: str, subject: str, message: str, reason: str = ""):
     print(f"Message: {message}", flush=True)
     print("=" * 70, flush=True)
 
+def create_smtp_session() -> Optional[smtplib.SMTP]:
+    """
+    Creates and authenticates a reusable SMTP connection for batch dispatch,
+    preventing repeated TCP/TLS handshakes across multiple recipients.
+    """
+    smtp_user, smtp_pass = get_smtp_credentials()
+    if not smtp_user or not smtp_pass:
+        return None
+    try:
+        server = smtplib.SMTP("smtp.gmail.com", 587, timeout=20)
+        server.ehlo()
+        server.starttls()
+        server.ehlo()
+        server.login(smtp_user, smtp_pass)
+        return server
+    except Exception as e:
+        logger.error(f"Failed to establish batch SMTP connection: {e}")
+        return None
+
 def _send_smtp_direct(
     to_email: str,
     subject: str,
     headline: str,
     message: str,
     html_content: str,
-    action_url: str
+    action_url: str,
+    smtp_connection: Optional[smtplib.SMTP] = None
 ) -> Dict[str, Any]:
     """
     Executes the real SMTP handshake using Gmail SMTP (smtp.gmail.com:587, STARTTLS).
     If credentials are missing, logs to console in Console mode.
     If sending fails, returns the exact exception without hiding it.
+    Reuses smtp_connection if provided.
     """
     smtp_user, smtp_pass = get_smtp_credentials()
 
@@ -204,14 +225,15 @@ def _send_smtp_direct(
     msg.attach(MIMEText(html_content, "html", "utf-8"))
 
     try:
-        # Requirement 3: Send using smtplib.SMTP("smtp.gmail.com", 587, timeout=20),
-        # then ehlo(), starttls(), ehlo(), login(), send_message()
-        with smtplib.SMTP("smtp.gmail.com", 587, timeout=20) as server:
-            server.ehlo()
-            server.starttls()
-            server.ehlo()
-            server.login(smtp_user, smtp_pass)
-            server.send_message(msg)
+        if smtp_connection:
+            smtp_connection.send_message(msg)
+        else:
+            with smtplib.SMTP("smtp.gmail.com", 587, timeout=20) as server:
+                server.ehlo()
+                server.starttls()
+                server.ehlo()
+                server.login(smtp_user, smtp_pass)
+                server.send_message(msg)
 
         logger.info(f"Successfully sent real Gmail SMTP email to {to_email} (Subject: {subject})")
         print(f"✅ [CAREME EMAIL] Successfully delivered via Gmail SMTP to {to_email} (Subject: {subject})", flush=True)
@@ -223,7 +245,6 @@ def _send_smtp_direct(
             "error_message": None
         }
     except Exception as e:
-        # Requirement 4: Do not hide errors. If sending fails, log exact exception and return it.
         err_type = type(e).__name__
         err_str = str(e)
         exact_err = f"{err_type}: {err_str}" if err_str else err_type
@@ -256,7 +277,8 @@ def send_email(
     user_id: int = None,
     notif_type: str = "dose",
     db: Session = None,
-    sync: bool = False
+    sync: bool = False,
+    smtp_connection: Optional[smtplib.SMTP] = None
 ) -> dict:
     """
     Sends an email with CareMe branding via Gmail SMTP (STARTTLS) or safely logs
@@ -328,15 +350,15 @@ def send_email(
 
     smtp_user, smtp_pass = get_smtp_credentials()
 
-    if not smtp_user or not smtp_pass:
-        delivery = _send_smtp_direct(to_email, subject, headline, message, html_content, action_url)
+    if not smtp_user or not smtp_pass or smtp_connection is not None:
+        delivery = _send_smtp_direct(to_email, subject, headline, message, html_content, action_url, smtp_connection=smtp_connection)
         result.update(delivery)
         _record_recent_email(result)
         return result
 
     if sync:
         # Synchronous execution (used by /demo/send-test-email so user sees live result)
-        delivery = _send_smtp_direct(to_email, subject, headline, message, html_content, action_url)
+        delivery = _send_smtp_direct(to_email, subject, headline, message, html_content, action_url, smtp_connection=smtp_connection)
         result.update(delivery)
         _record_recent_email(result)
         return result

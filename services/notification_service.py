@@ -1,8 +1,10 @@
+from typing import Optional, Dict, Any
 from datetime import datetime
 from sqlalchemy.orm import Session
 from models import Notification, ActivityLog, CareCircle, Membership, User
 
 def create_notification(db: Session, user_id: int, notif_type: str, message: str) -> Notification:
+    """Creates and persists an in-app notification for a specific user."""
     notif = Notification(
         user_id=user_id,
         type=notif_type,
@@ -20,9 +22,10 @@ def notify_circle(
     circle_id: int,
     notif_type: str,
     message: str,
-    require_perm: str = None,
-    exclude_user_id: int = None
-):
+    require_perm: Optional[str] = None,
+    exclude_user_id: Optional[int] = None
+) -> None:
+    """Broadcasts an in-app notification to the elder and approved circle members."""
     circle = db.query(CareCircle).filter(CareCircle.id == circle_id).first()
     if not circle:
         return
@@ -46,7 +49,8 @@ def notify_circle(
                 continue
         create_notification(db, mem.user_id, notif_type, message)
 
-def log_activity(db: Session, circle_id: int, user_id: int, action: str) -> ActivityLog:
+def log_activity(db: Session, circle_id: int, user_id: Optional[int], action: str) -> ActivityLog:
+    """Records an immutable activity log entry for the care circle audit trail."""
     log_entry = ActivityLog(
         circle_id=circle_id,
         user_id=user_id,
@@ -58,13 +62,15 @@ def log_activity(db: Session, circle_id: int, user_id: int, action: str) -> Acti
     db.refresh(log_entry)
     return log_entry
 
-def get_user_membership(db: Session, user: User, circle_id: int = None) -> Membership | None:
+def get_user_membership(db: Session, user: User, circle_id: Optional[int] = None) -> Optional[Membership]:
+    """Finds the membership record for a given user, optionally filtered by care circle."""
     query = db.query(Membership).filter(Membership.user_id == user.id)
     if circle_id:
         query = query.filter(Membership.circle_id == circle_id)
     return query.first()
 
-def get_user_circle(db: Session, user: User) -> CareCircle | None:
+def get_user_circle(db: Session, user: User) -> Optional[CareCircle]:
+    """Resolves the active CareCircle for an elder or participating member."""
     if user.role == "elder":
         circle = db.query(CareCircle).filter(CareCircle.elder_id == user.id).first()
         if circle:
@@ -89,7 +95,8 @@ def get_user_circle(db: Session, user: User) -> CareCircle | None:
         return circle
     return None
 
-def get_user_permissions(db: Session, user: User, circle_id: int) -> dict:
+def get_user_permissions(db: Session, user: User, circle_id: int) -> Dict[str, bool]:
+    """Calculates granular permission flags (view_health, edit_meds, view_location, etc.) for a user."""
     circle = db.query(CareCircle).filter(CareCircle.id == circle_id).first()
     if not circle:
         return {

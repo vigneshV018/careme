@@ -146,6 +146,8 @@ async def assistant_chat(
     question = str(question).strip()
     if not question:
         return JSONResponse({"error": "Question cannot be empty."}, status_code=400)
+    if len(question) > 1000:
+        return JSONResponse({"error": "Question exceeds maximum length of 1000 characters."}, status_code=400)
 
     facts = build_circle_facts(db, circle, circle.elder)
     result = ask_assistant_question(question, facts)

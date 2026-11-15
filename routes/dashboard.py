@@ -3,7 +3,7 @@ from fastapi import APIRouter, Request, Depends, HTTPException, status
 from fastapi.responses import HTMLResponse, RedirectResponse
 from template_config import templates
 from sqlalchemy import func
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 from database import get_db
 from models import (
     User, CareCircle, Membership, Medicine, DoseLog,
@@ -78,10 +78,10 @@ def dashboard(
         EmergencyAlert.acknowledged_at == None
     ).order_by(EmergencyAlert.created_at.desc()).first()
 
-    # Today's dose logs
+    # Today's dose logs (eager-load Medicine)
     today_start = datetime.combine(date.today(), datetime.min.time())
     today_end = datetime.combine(date.today(), datetime.max.time())
-    today_doses = db.query(DoseLog).join(Medicine).filter(
+    today_doses = db.query(DoseLog).options(joinedload(DoseLog.medicine)).join(Medicine).filter(
         Medicine.circle_id == circle.id,
         DoseLog.scheduled_at >= today_start,
         DoseLog.scheduled_at <= today_end
@@ -94,22 +94,22 @@ def dashboard(
         Appointment.datetime >= now
     ).order_by(Appointment.datetime.asc()).first()
 
-    # Circle members
-    members = db.query(Membership).filter(
+    # Circle members (eager-load User)
+    members = db.query(Membership).options(joinedload(Membership.user)).filter(
         Membership.circle_id == circle.id,
         Membership.status == "approved"
     ).all()
 
-    # Pending requests for elder review
+    # Pending requests for elder review (eager-load User)
     pending_requests = []
     if user.role == "elder" or permissions.get("can_manage_access") or permissions.get("is_owner"):
-        pending_requests = db.query(Membership).filter(
+        pending_requests = db.query(Membership).options(joinedload(Membership.user)).filter(
             Membership.circle_id == circle.id,
             Membership.status == "pending"
         ).all()
 
-    # Recent activity
-    recent_activities = db.query(ActivityLog).filter(
+    # Recent activity (eager-load User)
+    recent_activities = db.query(ActivityLog).options(joinedload(ActivityLog.user)).filter(
         ActivityLog.circle_id == circle.id
     ).order_by(ActivityLog.timestamp.desc()).limit(8).all()
 

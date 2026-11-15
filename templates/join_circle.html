@@ -13,15 +13,15 @@
     <div class="bg-white rounded-3xl border border-slate-200 p-6 shadow-sm">
         <form method="POST" action="/circle/join" class="space-y-4">
             <div>
-                <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Circle Passcode</label>
-                <input type="text" name="passcode" required maxlength="6" value="482915" placeholder="e.g. 482915"
+                <label for="join-passcode" class="block text-xs font-bold text-slate-700 uppercase mb-1">Circle Passcode</label>
+                <input type="text" id="join-passcode" name="passcode" required maxlength="6" value="482915" placeholder="e.g. 482915"
                     class="w-full text-center text-2xl font-black tracking-widest px-4 py-3 rounded-2xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-brand-500">
                 <p class="text-[11px] text-brand-600 font-bold mt-1">Default demo passcode: 482915 (Lakshmi's Circle)</p>
             </div>
 
             <div>
-                <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Your Relationship</label>
-                <input type="text" name="relationship" value="Family Member" placeholder="e.g. Son, Daughter, Caregiver"
+                <label for="join-relationship" class="block text-xs font-bold text-slate-700 uppercase mb-1">Your Relationship</label>
+                <input type="text" id="join-relationship" name="relationship" value="Family Member" placeholder="e.g. Son, Daughter, Caregiver"
                     class="w-full px-4 py-2.5 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-brand-500 text-sm">
             </div>
 

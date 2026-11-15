@@ -227,3 +227,56 @@ function copyText(text, btnElement) {
         }, 2000);
     });
 }
+
+// -----------------------------------------------------------------------------
+// Accessible Modal Keyboard Controller (Escape, Focus Trap, Focus Return)
+// -----------------------------------------------------------------------------
+let _lastFocusedTrigger = null;
+
+function trackModalTrigger(triggerEl) {
+    _lastFocusedTrigger = triggerEl || document.activeElement;
+}
+
+function restoreModalFocus() {
+    if (_lastFocusedTrigger && typeof _lastFocusedTrigger.focus === 'function') {
+        _lastFocusedTrigger.focus();
+        _lastFocusedTrigger = null;
+    }
+}
+
+document.addEventListener('keydown', (e) => {
+    const openModal = document.querySelector('[role="dialog"]:not(.hidden), .fixed:not(.hidden)[id*="modal"]');
+    if (!openModal) return;
+
+    if (e.key === 'Escape') {
+        e.preventDefault();
+        if (typeof closeCameraModal === 'function' && openModal.id === 'camera-modal') {
+            closeCameraModal();
+        } else if (typeof closePreviewModal === 'function' && openModal.id === 'email-preview-modal') {
+            closePreviewModal();
+        } else {
+            openModal.classList.add('hidden');
+        }
+        restoreModalFocus();
+        return;
+    }
+
+    if (e.key === 'Tab') {
+        const focusables = openModal.querySelectorAll('button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])');
+        if (focusables.length === 0) return;
+        const first = focusables[0];
+        const last = focusables[focusables.length - 1];
+
+        if (e.shiftKey) {
+            if (document.activeElement === first) {
+                last.focus();
+                e.preventDefault();
+            }
+        } else {
+            if (document.activeElement === last) {
+                first.focus();
+                e.preventDefault();
+            }
+        }
+    }
+});

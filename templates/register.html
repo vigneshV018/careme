@@ -21,33 +21,33 @@
             <input type="hidden" name="csrf_token" value="{{ csrf_token(request) }}">
 
             <div>
-                <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Your Full Name *</label>
-                <input type="text" name="name" required placeholder="e.g. Lakshmi Devi, Arun Kumar"
+                <label for="reg-name" class="block text-xs font-bold text-slate-700 uppercase mb-1">Your Full Name *</label>
+                <input type="text" id="reg-name" name="name" required placeholder="e.g. Lakshmi Devi, Arun Kumar"
                     class="w-full px-4 py-2.5 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-brand-500 text-sm">
             </div>
 
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                    <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Email Address *</label>
-                    <input type="email" name="email" required placeholder="you@domain.com"
+                    <label for="reg-email" class="block text-xs font-bold text-slate-700 uppercase mb-1">Email Address *</label>
+                    <input type="email" id="reg-email" name="email" required placeholder="you@domain.com"
                         class="w-full px-4 py-2.5 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-brand-500 text-sm">
                 </div>
                 <div>
-                    <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Phone Number</label>
-                    <input type="tel" name="phone" placeholder="+91 98765 43210"
+                    <label for="reg-phone" class="block text-xs font-bold text-slate-700 uppercase mb-1">Phone Number</label>
+                    <input type="tel" id="reg-phone" name="phone" placeholder="+91 98765 43210"
                         class="w-full px-4 py-2.5 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-brand-500 text-sm">
                 </div>
             </div>
 
             <div>
-                <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Password * (minimum 8 characters)</label>
-                <input type="password" name="password" required minlength="8" placeholder="••••••••"
+                <label for="reg-password" class="block text-xs font-bold text-slate-700 uppercase mb-1">Password * (minimum 8 characters)</label>
+                <input type="password" id="reg-password" name="password" required minlength="8" placeholder="••••••••"
                     class="w-full px-4 py-2.5 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-brand-500 text-sm">
             </div>
 
             <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <div>
-                    <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Role *</label>
+                    <label for="role-select" class="block text-xs font-bold text-slate-700 uppercase mb-1">Role *</label>
                     <select name="role" id="role-select" onchange="toggleCirclePasscodeField()" class="w-full px-3 py-2.5 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-brand-500 text-sm bg-white font-medium">
                         <option value="elder">Elder</option>
                         <option value="family" selected>Family Member</option>
@@ -55,32 +55,32 @@
                     </select>
                 </div>
                 <div>
-                    <label class="block text-xs font-bold text-slate-700 uppercase mb-1">City</label>
-                    <input type="text" name="city" placeholder="e.g. Coimbatore"
+                    <label for="reg-city" class="block text-xs font-bold text-slate-700 uppercase mb-1">City</label>
+                    <input type="text" id="reg-city" name="city" placeholder="e.g. Coimbatore"
                         class="w-full px-4 py-2.5 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-brand-500 text-sm">
                 </div>
                 <div>
-                    <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Age</label>
-                    <input type="number" name="age" placeholder="e.g. 75"
+                    <label for="reg-age" class="block text-xs font-bold text-slate-700 uppercase mb-1">Age</label>
+                    <input type="number" id="reg-age" name="age" placeholder="e.g. 75"
                         class="w-full px-4 py-2.5 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-brand-500 text-sm">
                 </div>
             </div>
 
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div id="pin-field-wrapper">
-                    <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Quick 4-Digit PIN (For Elders)</label>
-                    <input type="text" name="pin" maxlength="4" placeholder="e.g. 1234"
+                    <label for="reg-pin" class="block text-xs font-bold text-slate-700 uppercase mb-1">Quick 4-Digit PIN (For Elders)</label>
+                    <input type="text" id="reg-pin" name="pin" maxlength="4" placeholder="e.g. 1234"
                         class="w-full px-4 py-2.5 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-brand-500 text-sm tracking-widest text-center">
-                    <p class="text-[11px] text-slate-400 mt-1">Allows 1-tap elder login without typing password</p>
+                    <p class="text-[11px] text-slate-500 mt-1">Allows 1-tap elder login without typing password</p>
                 </div>
                 <div id="circle-code-wrapper">
-                    <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Care Passcode (6 digits)</label>
-                    <input type="text" name="circle_passcode" maxlength="6" value="{% if demo_mode %}482915{% endif %}" placeholder="e.g. 482915"
+                    <label for="reg-circle-passcode" class="block text-xs font-bold text-slate-700 uppercase mb-1">Care Passcode (6 digits)</label>
+                    <input type="text" id="reg-circle-passcode" name="circle_passcode" maxlength="6" value="{% if demo_mode %}482915{% endif %}" placeholder="e.g. 482915"
                         class="w-full px-4 py-2.5 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-brand-500 text-sm tracking-widest text-center font-mono">
                     {% if demo_mode %}
-                    <p class="text-[11px] text-slate-400 mt-1">Lakshmi's demo circle passcode: <code>482915</code></p>
+                    <p class="text-[11px] text-slate-500 mt-1">Lakshmi's demo circle passcode: <code>482915</code></p>
                     {% else %}
-                    <p class="text-[11px] text-slate-400 mt-1">Enter the 6-digit code provided by your elder</p>
+                    <p class="text-[11px] text-slate-500 mt-1">Enter the 6-digit code provided by your elder</p>
                     {% endif %}
                 </div>
             </div>

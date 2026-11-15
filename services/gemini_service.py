@@ -145,7 +145,13 @@ def get_rule_based_assistant_answer(question: str, context: Dict[str, Any]) -> s
     meds = context.get("medicines_summary", "Metformin 500mg, Amlodipine 5mg, Atorvastatin 10mg")
     pattern = context.get("pattern_detected", "morning")
 
-    if any(k in q_lower for k in ["week", "how was", "doing", "summary", "status"]):
+    if any(k in q_lower for k in ["stop", "discontinue", "quit", "change dose", "change dosage", "reduce dose", "increase dose", "skip"]):
+        return (
+            f"**Medical Safety Advisory:** CareMe cannot advise stopping, changing, or adjusting medications. "
+            f"All prescription decisions must be evaluated and approved directly by {elder}'s doctor (such as {next_app}). "
+            f"Please consult their physician before making any changes to prescribed treatments."
+        )
+    elif any(k in q_lower for k in ["week", "how was", "doing", "summary", "status"]):
         return (
             f"**{elder}'s Week in Review:**\n\n"
             f"• **Adherence Rate:** {elder} has an **{rate}** medication confirmation rate for the past 7 days.\n"

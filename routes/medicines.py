@@ -122,6 +122,25 @@ async def scan_prescription(
                 "error": "Empty file received. Please upload or capture a photo of the prescription."
             }, status_code=400)
 
+        # Security check: Max 10MB limit
+        if len(image_bytes) > 10 * 1024 * 1024:
+            return JSONResponse({
+                "success": False,
+                "error": "Prescription file size exceeds the 10MB limit. Please upload a smaller photo."
+            }, status_code=400)
+
+        # Security check: Validate image type by actual file content magic bytes
+        is_jpeg = image_bytes.startswith(b"\xFF\xD8\xFF")
+        is_png = image_bytes.startswith(b"\x89PNG\r\n\x1a\n")
+        is_webp = len(image_bytes) >= 12 and image_bytes[:4] == b"RIFF" and image_bytes[8:12] == b"WEBP"
+        is_gif = image_bytes.startswith(b"GIF8")
+
+        if not (is_jpeg or is_png or is_webp or is_gif):
+            return JSONResponse({
+                "success": False,
+                "error": "Invalid image content. Please upload a valid JPG, PNG, or WebP photo."
+            }, status_code=400)
+
         result = scan_prescription_with_gemini(image_bytes, content_type)
         return JSONResponse(result)
     except Exception as e:

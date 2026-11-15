@@ -4,10 +4,11 @@ from datetime import datetime, timedelta
 from apscheduler.schedulers.background import BackgroundScheduler
 from services.timezone import KOLKATA_TZ, now_kolkata
 
+from sqlalchemy.orm import joinedload
 from config import ESCALATE_1_MIN, ESCALATE_2_MIN
 from database import SessionLocal
 from models import DoseLog, Appointment, Medicine, CareCircle, Membership, User, ActivityLog
-from services.email_service import send_email
+from services.email_service import send_email, create_smtp_session
 
 logger = logging.getLogger("careme.scheduler")
 scheduler = BackgroundScheduler(timezone=KOLKATA_TZ, daemon=True)
@@ -29,15 +30,24 @@ def check_dose_escalations(db_session=None):
         db = db_session
 
     events_summary = []
+    smtp_session = create_smtp_session()
     try:
         now = now_kolkata().replace(tzinfo=None)
-        pending_doses = db.query(DoseLog).join(Medicine).filter(
-            DoseLog.status == "pending"
+        # Query only doses within the relevant active window (last 24 hours to +5 min)
+        time_window_start = now - timedelta(hours=24)
+        time_window_end = now + timedelta(minutes=5)
+
+        pending_doses = db.query(DoseLog).options(
+            joinedload(DoseLog.medicine).joinedload(Medicine.circle).joinedload(CareCircle.elder)
+        ).join(Medicine).filter(
+            DoseLog.status == "pending",
+            DoseLog.scheduled_at >= time_window_start,
+            DoseLog.scheduled_at <= time_window_end
         ).all()
 
         for dose in pending_doses:
             med = dose.medicine
-            circle = db.query(CareCircle).filter(CareCircle.id == med.circle_id).first()
+            circle = med.circle if med else None
             if not circle or not circle.elder:
                 continue
 
@@ -71,7 +81,9 @@ def check_dose_escalations(db_session=None):
                     action_text="I Took This Medicine",
                     user_id=elder.id,
                     notif_type="dose",
-                    db=db
+                    db=db,
+                    sync=True,
+                    smtp_connection=smtp_session
                 )
 
                 db.add(ActivityLog(
@@ -103,8 +115,8 @@ def check_dose_escalations(db_session=None):
                 headline = f"{med.name} Confirmation Pending"
                 message = f"{med.name} was not confirmed at {time_str}. This doesn't always mean it was missed. Please check in."
 
-                # Get only members with can_receive_alerts
-                alert_members = db.query(Membership).filter(
+                # Get only members with can_receive_alerts (eager-loaded user)
+                alert_members = db.query(Membership).options(joinedload(Membership.user)).filter(
                     Membership.circle_id == circle.id,
                     Membership.status == "approved",
                     Membership.can_receive_alerts == True
@@ -128,7 +140,9 @@ def check_dose_escalations(db_session=None):
                         action_text="View Circle Status",
                         user_id=m.user_id,
                         notif_type="missed",
-                        db=db
+                        db=db,
+                        sync=True,
+                        smtp_connection=smtp_session
                     )
                     events_summary.append({
                         "stage": "30_min_escalation",
@@ -158,9 +172,9 @@ def check_dose_escalations(db_session=None):
                 headline = f"Overdue Dose: {med.name} Marked Not Confirmed"
                 message = f"{med.name} ({med.dosage}) scheduled for {time_str} remains unconfirmed after 2 hours and has been marked Not Confirmed. Please check on {elder.name} immediately."
 
-                # Gather whole circle (elder + all approved members including caregivers)
+                # Gather whole circle (elder + all approved members including caregivers, eager-loaded)
                 all_recipients = [(elder.name, elder.email, elder.id, "Elder")]
-                circle_members = db.query(Membership).filter(
+                circle_members = db.query(Membership).options(joinedload(Membership.user)).filter(
                     Membership.circle_id == circle.id,
                     Membership.status == "approved"
                 ).all()
@@ -185,7 +199,9 @@ def check_dose_escalations(db_session=None):
                         action_text="Open CareMe Emergency View",
                         user_id=r_uid,
                         notif_type="missed",
-                        db=db
+                        db=db,
+                        sync=True,
+                        smtp_connection=smtp_session
                     )
                     events_summary.append({
                         "stage": "120_min_escalation",
@@ -208,6 +224,11 @@ def check_dose_escalations(db_session=None):
         logger.error(f"Error in check_dose_escalations: {e}", exc_info=True)
         db.rollback()
     finally:
+        if smtp_session:
+            try:
+                smtp_session.quit()
+            except Exception:
+                pass
         if close_db:
             db.close()
 
@@ -225,22 +246,29 @@ def check_appointment_reminders(db_session=None):
         db = db_session
 
     events_summary = []
+    smtp_session = create_smtp_session()
     try:
         now = now_kolkata().replace(tzinfo=None)
-        upcoming = db.query(Appointment).filter(Appointment.datetime > now).all()
+        # Relevant time window for appointment reminders: next 25 hours (covers 24h & 2h reminders)
+        upcoming = db.query(Appointment).options(
+            joinedload(Appointment.circle).joinedload(CareCircle.elder)
+        ).filter(
+            Appointment.datetime > now,
+            Appointment.datetime <= now + timedelta(hours=25)
+        ).all()
 
         for appt in upcoming:
             time_until = appt.datetime - now
-            circle = db.query(CareCircle).filter(CareCircle.id == appt.circle_id).first()
+            circle = appt.circle if appt else None
             if not circle or not circle.elder:
                 continue
 
             elder = circle.elder
             appt_time_str = appt.datetime.strftime("%A, %b %d at %I:%M %p")
 
-            # Recipients: elder + members with can_receive_alerts
+            # Recipients: elder + members with can_receive_alerts (eager-loaded user)
             recipients = [(elder.name, elder.email, elder.id, "Elder")]
-            members = db.query(Membership).filter(
+            members = db.query(Membership).options(joinedload(Membership.user)).filter(
                 Membership.circle_id == appt.circle_id,
                 Membership.status == "approved",
                 Membership.can_receive_alerts == True
@@ -275,7 +303,9 @@ def check_appointment_reminders(db_session=None):
                         action_text="View Consultation Details",
                         user_id=r_uid,
                         notif_type="appointment",
-                        db=db
+                        db=db,
+                        sync=True,
+                        smtp_connection=smtp_session
                     )
                     events_summary.append({
                         "stage": "appointment_24h",
@@ -320,7 +350,9 @@ def check_appointment_reminders(db_session=None):
                         action_text="View Clinic Address & Contact",
                         user_id=r_uid,
                         notif_type="appointment",
-                        db=db
+                        db=db,
+                        sync=True,
+                        smtp_connection=smtp_session
                     )
                     events_summary.append({
                         "stage": "appointment_2h",
@@ -343,6 +375,11 @@ def check_appointment_reminders(db_session=None):
         logger.error(f"Error in check_appointment_reminders: {e}", exc_info=True)
         db.rollback()
     finally:
+        if smtp_session:
+            try:
+                smtp_session.quit()
+            except Exception:
+                pass
         if close_db:
             db.close()
 

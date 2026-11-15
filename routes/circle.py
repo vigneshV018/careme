@@ -2,7 +2,7 @@ import random
 from fastapi import APIRouter, Request, Depends, Form, HTTPException, status
 from fastapi.responses import HTMLResponse, RedirectResponse, JSONResponse
 from template_config import templates
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 from database import get_db
 from models import CareCircle, Membership, User, ActivityLog, Notification
 from services.auth_service import get_current_user
@@ -32,11 +32,11 @@ def circle_detail(
             return RedirectResponse(url="/dashboard", status_code=status.HTTP_302_FOUND)
 
     permissions = get_user_permissions(db, user, circle.id)
-    members = db.query(Membership).filter(
+    members = db.query(Membership).options(joinedload(Membership.user)).filter(
         Membership.circle_id == circle.id,
         Membership.status == "approved"
     ).all()
-    pending_members = db.query(Membership).filter(
+    pending_members = db.query(Membership).options(joinedload(Membership.user)).filter(
         Membership.circle_id == circle.id,
         Membership.status == "pending"
     ).all()

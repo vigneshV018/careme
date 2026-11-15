@@ -4,16 +4,14 @@ Limits failed login attempts to 10 in DEMO_MODE (5 in production), then imposes 
 """
 from datetime import datetime, timedelta
 from typing import Dict, Tuple
-from config import DEMO_MODE
-
-LOCKOUT_SECONDS = 300  # 5 minutes
+from config import DEMO_MODE, MAX_FAILED_LOGINS_DEMO, MAX_FAILED_LOGINS_PROD, LOCKOUT_SECONDS
 
 # In-memory tracking: {key: {"count": int, "locked_until": datetime | None}}
 _login_attempts: Dict[str, Dict] = {}
 
 def get_max_attempts() -> int:
-    """Returns 10 attempts for DEMO_MODE, 5 for production."""
-    return 10 if DEMO_MODE else 5
+    """Returns max attempts: 10 for DEMO_MODE, 5 for production."""
+    return MAX_FAILED_LOGINS_DEMO if DEMO_MODE else MAX_FAILED_LOGINS_PROD
 
 def check_login_rate_limit(key: str) -> Tuple[bool, int]:
     """

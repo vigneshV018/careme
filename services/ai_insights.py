@@ -1,8 +1,13 @@
+from typing import Dict, Any, List
 from datetime import datetime, timedelta
 from sqlalchemy.orm import Session
 from models import DoseLog, Medicine, CareCircle
 
-def get_circle_adherence_analytics(db: Session, circle_id: int, days: int = 7):
+def get_circle_adherence_analytics(db: Session, circle_id: int, days: int = 7) -> Dict[str, Any]:
+    """
+    Computes comprehensive medication adherence analytics for a care circle over the given days window.
+    Calculates total, taken, missed counts, time-of-day breakdowns, daily trend stats, and observational insights.
+    """
     cutoff = datetime.now() - timedelta(days=days)
     
     logs = db.query(DoseLog).join(Medicine).filter(

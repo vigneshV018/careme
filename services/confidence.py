@@ -8,12 +8,38 @@ Tone guideline: Respects elder independence, encourages supportive connection,
 never sounds alarming or clinical.
 """
 
+import time
+import logging
 from datetime import datetime, timedelta, date
-from typing import Dict, Any, List
+from typing import Dict, Any, List, Optional, Tuple
 from sqlalchemy.orm import Session
 from models import DoseLog, Medicine, CareCircle, Appointment, ActivityLog, EmergencyAlert
+from config import CONFIDENCE_CACHE_SECONDS
 
-def compute_remote_care_confidence(db: Session, circle_id: int) -> Dict[str, Any]:
+logger = logging.getLogger("careme.confidence")
+
+# In-memory cache for confidence scores: {circle_id: (cached_at_timestamp, cached_result)}
+_confidence_cache: Dict[int, Tuple[float, Dict[str, Any]]] = {}
+
+def clear_confidence_cache(circle_id: Optional[int] = None) -> None:
+    """Clears the confidence score cache for a specific circle or all circles."""
+    if circle_id is not None:
+        _confidence_cache.pop(circle_id, None)
+    else:
+        _confidence_cache.clear()
+
+def compute_remote_care_confidence(db: Session, circle_id: int, use_cache: bool = True) -> Dict[str, Any]:
+    """
+    Computes a 0-100 Remote Care Confidence score from 7-day adherence,
+    streak continuity, time-of-day patterns, hours since last activity, and upcoming appointments.
+    Caches results for 60 seconds per care circle for high-performance dashboard rendering.
+    """
+    now_ts = time.time()
+    if use_cache and circle_id in _confidence_cache:
+        cached_ts, cached_data = _confidence_cache[circle_id]
+        if now_ts - cached_ts < CONFIDENCE_CACHE_SECONDS:
+            return cached_data
+
     circle = db.query(CareCircle).filter(CareCircle.id == circle_id).first()
     elder_name = circle.elder.name if (circle and circle.elder) else "Your loved one"
 
@@ -203,7 +229,7 @@ def compute_remote_care_confidence(db: Session, circle_id: int) -> Dict[str, Any
         color = "orange"
         tone_message = f"A friendly hello or phone check-in today would be wonderful to see how {elder_name} is feeling and catch up on her day."
 
-    return {
+    result = {
         "score": score,
         "label": label,
         "color": color,
@@ -226,4 +252,6 @@ def compute_remote_care_confidence(db: Session, circle_id: int) -> Dict[str, Any
             } if next_appointment else None
         }
     }
+    _confidence_cache[circle_id] = (now_ts, result)
+    return result
 

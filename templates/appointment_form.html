@@ -20,46 +20,46 @@
         <form method="POST" action="{{ '/appointments/edit/' + appointment.id|string if action == 'edit' else '/appointments/add' }}" class="space-y-4">
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                    <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Doctor Name</label>
-                    <input type="text" name="doctor" required value="{{ appointment.doctor if appointment else 'Dr. ' }}" placeholder="e.g. Dr. Ramesh"
+                    <label for="appt-doctor" class="block text-xs font-bold text-slate-700 uppercase mb-1">Doctor Name</label>
+                    <input type="text" id="appt-doctor" name="doctor" required value="{{ appointment.doctor if appointment else 'Dr. ' }}" placeholder="e.g. Dr. Ramesh"
                         class="w-full px-4 py-2.5 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-brand-500 text-sm">
                 </div>
                 <div>
-                    <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Specialty</label>
-                    <input type="text" name="specialty" required value="{{ appointment.specialty if appointment else '' }}" placeholder="e.g. Cardiologist, Neurologist"
+                    <label for="appt-specialty" class="block text-xs font-bold text-slate-700 uppercase mb-1">Specialty</label>
+                    <input type="text" id="appt-specialty" name="specialty" required value="{{ appointment.specialty if appointment else '' }}" placeholder="e.g. Cardiologist, Neurologist"
                         class="w-full px-4 py-2.5 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-brand-500 text-sm">
                 </div>
             </div>
 
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                    <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Hospital / Clinic</label>
-                    <input type="text" name="hospital" required value="{{ appointment.hospital if appointment else '' }}" placeholder="e.g. KG Hospital, Coimbatore"
+                    <label for="appt-hospital" class="block text-xs font-bold text-slate-700 uppercase mb-1">Hospital / Clinic</label>
+                    <input type="text" id="appt-hospital" name="hospital" required value="{{ appointment.hospital if appointment else '' }}" placeholder="e.g. KG Hospital, Coimbatore"
                         class="w-full px-4 py-2.5 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-brand-500 text-sm">
                 </div>
                 <div>
-                    <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Phone Number</label>
-                    <input type="tel" name="phone" value="{{ appointment.phone if appointment else '+91 ' }}" placeholder="+91 422 2221212"
+                    <label for="appt-phone" class="block text-xs font-bold text-slate-700 uppercase mb-1">Phone Number</label>
+                    <input type="tel" id="appt-phone" name="phone" value="{{ appointment.phone if appointment else '+91 ' }}" placeholder="+91 422 2221212"
                         class="w-full px-4 py-2.5 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-brand-500 text-sm">
                 </div>
             </div>
 
             <div>
-                <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Hospital Address</label>
-                <input type="text" name="address" value="{{ appointment.address if appointment else '' }}" placeholder="e.g. Arts College Road, Coimbatore - 641018"
+                <label for="appt-address" class="block text-xs font-bold text-slate-700 uppercase mb-1">Hospital Address</label>
+                <input type="text" id="appt-address" name="address" value="{{ appointment.address if appointment else '' }}" placeholder="e.g. Arts College Road, Coimbatore - 641018"
                     class="w-full px-4 py-2.5 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-brand-500 text-sm">
             </div>
 
             <div>
-                <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Appointment Date & Time</label>
-                <input type="datetime-local" name="datetime_str" required 
+                <label for="appt-datetime" class="block text-xs font-bold text-slate-700 uppercase mb-1">Appointment Date & Time</label>
+                <input type="datetime-local" id="appt-datetime" name="datetime_str" required 
                     value="{{ appointment.datetime.strftime('%Y-%m-%dT%H:%M') if appointment else '' }}"
                     class="w-full px-4 py-2.5 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-brand-500 text-sm">
             </div>
 
             <div>
-                <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Preparation & Clinical Notes</label>
-                <textarea name="notes" rows="3" placeholder="e.g. Bring fasting sugar report and latest ECG charts."
+                <label for="appt-notes" class="block text-xs font-bold text-slate-700 uppercase mb-1">Preparation & Clinical Notes</label>
+                <textarea id="appt-notes" name="notes" rows="3" placeholder="e.g. Bring fasting sugar report and latest ECG charts."
                     class="w-full px-4 py-2.5 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-brand-500 text-sm">{{ appointment.notes if appointment else '' }}</textarea>
             </div>
 

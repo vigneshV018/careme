@@ -1,7 +1,7 @@
 import json
 from datetime import datetime, date
 from sqlalchemy import (
-    Column, Integer, String, Float, Boolean, DateTime, Date, ForeignKey, Text
+    Column, Integer, String, Float, Boolean, DateTime, Date, ForeignKey, Text, Index
 )
 from sqlalchemy.orm import relationship as sa_relationship
 from database import Base
@@ -58,6 +58,9 @@ class CareCircle(Base):
 
 class Membership(Base):
     __tablename__ = "memberships"
+    __table_args__ = (
+        Index("ix_memberships_circle_user", "circle_id", "user_id"),
+    )
 
     id = Column(Integer, primary_key=True, index=True)
     circle_id = Column(Integer, ForeignKey("care_circles.id"), nullable=False)
@@ -108,6 +111,9 @@ class Medicine(Base):
 
 class DoseLog(Base):
     __tablename__ = "dose_logs"
+    __table_args__ = (
+        Index("ix_dose_logs_med_sched_status", "medicine_id", "scheduled_at", "status"),
+    )
 
     id = Column(Integer, primary_key=True, index=True)
     medicine_id = Column(Integer, ForeignKey("medicines.id"), nullable=False)
@@ -124,6 +130,9 @@ class DoseLog(Base):
 
 class Appointment(Base):
     __tablename__ = "appointments"
+    __table_args__ = (
+        Index("ix_appointments_circle_datetime", "circle_id", "datetime"),
+    )
 
     id = Column(Integer, primary_key=True, index=True)
     circle_id = Column(Integer, ForeignKey("care_circles.id"), nullable=False)
@@ -175,6 +184,9 @@ class ActivityLog(Base):
 
 class Notification(Base):
     __tablename__ = "notifications"
+    __table_args__ = (
+        Index("ix_notifications_user_read", "user_id", "is_read"),
+    )
 
     id = Column(Integer, primary_key=True, index=True)
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)

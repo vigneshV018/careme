@@ -45,27 +45,29 @@
     {% block extra_head %}{% endblock %}
 </head>
 <body class="bg-slate-50 text-slate-800 min-h-screen flex flex-col antialiased {% if user and user.role == 'elder' %}elder-mobile-space{% endif %}">
+    <!-- Skip to main content link for keyboard and screen reader accessibility -->
+    <a href="#main-content" class="sr-only focus:not-sr-only focus:absolute focus:top-2 focus:left-2 focus:z-50 focus:px-4 focus:py-2 focus:bg-brand-600 focus:text-white focus:rounded-xl focus:shadow-lg focus:outline-none">Skip to main content</a>
 
     <!-- PWA Add to Home Screen Hint (Phones) -->
     <div id="pwa-install-banner" class="hidden bg-slate-950 text-white px-4 py-2.5 border-b border-slate-800 flex items-center justify-between text-xs z-50">
         <div class="flex items-center gap-2">
-            <img src="/static/icons/icon-192.png" class="w-6 h-6 rounded-md">
+            <img src="/static/icons/icon-192.png" alt="CareMe Logo" class="w-6 h-6 rounded-md">
             <span>Install <strong>CareMe</strong> on your phone for quick home screen access</span>
         </div>
         <div class="flex items-center gap-2">
-            <button onclick="triggerPwaInstall()" class="bg-teal-500 hover:bg-teal-600 text-white font-extrabold px-3 py-1 rounded-lg text-[11px] shadow-sm">
+            <button onclick="triggerPwaInstall()" aria-label="Install CareMe App" class="bg-teal-500 hover:bg-teal-600 text-white font-extrabold px-3 py-1 rounded-lg text-[11px] shadow-sm">
                 Install
             </button>
-            <button onclick="dismissPwaInstall()" class="text-slate-400 hover:text-white text-sm p-1">
-                <i class="fa-solid fa-xmark"></i>
+            <button onclick="dismissPwaInstall()" aria-label="Dismiss Install Banner" class="text-slate-400 hover:text-white text-sm p-1">
+                <i class="fa-solid fa-xmark" aria-hidden="true"></i>
             </button>
         </div>
     </div>
 
     <!-- Active Emergency SOS Alert Banner -->
     {% if active_sos %}
-    <div class="bg-rose-600 text-white px-4 py-3 text-center font-bold text-sm flex items-center justify-center gap-3 animate-pulse shadow-md z-50">
-        <i class="fa-solid fa-triangle-exclamation text-xl"></i>
+    <div role="alert" class="bg-rose-600 text-white px-4 py-3 text-center font-bold text-sm flex items-center justify-center gap-3 animate-pulse shadow-md z-50">
+        <i class="fa-solid fa-triangle-exclamation text-xl" aria-hidden="true"></i>
         <span>EMERGENCY ALERT TRIGGERED for {{ circle.elder.name if circle else 'Elder' }}!</span>
         <a href="/alerts" class="bg-white text-rose-700 px-3 py-1 rounded-lg text-xs font-black uppercase hover:bg-rose-50 transition shadow">
             View SOS Location & Details
@@ -189,31 +191,31 @@
 
             <!-- Sub Nav Links (Desktop & Tablet) -->
             {% if user %}
-            <nav class="hidden sm:flex items-center space-x-2 sm:space-x-3 overflow-x-auto py-2.5 border-t border-slate-100 text-xs sm:text-sm font-semibold">
-                <a href="/dashboard" class="px-3 py-1.5 rounded-xl transition {% if request.url.path == '/dashboard' %}bg-brand-600 text-white shadow-sm{% else %}text-slate-600 hover:text-slate-900 hover:bg-slate-100{% endif %}">
-                    <i class="fa-solid fa-house mr-1"></i> Dashboard
+            <nav aria-label="Main Navigation" class="hidden sm:flex items-center space-x-2 sm:space-x-3 overflow-x-auto py-2.5 border-t border-slate-100 text-xs sm:text-sm font-semibold">
+                <a href="/dashboard" {% if request.url.path == '/dashboard' %}aria-current="page"{% endif %} class="px-3 py-1.5 rounded-xl transition {% if request.url.path == '/dashboard' %}bg-brand-600 text-white shadow-sm{% else %}text-slate-600 hover:text-slate-900 hover:bg-slate-100{% endif %}">
+                    <i class="fa-solid fa-house mr-1" aria-hidden="true"></i> Dashboard
                 </a>
-                <a href="/medicines" class="px-3 py-1.5 rounded-xl transition {% if '/medicines' in request.url.path %}bg-brand-600 text-white shadow-sm{% else %}text-slate-600 hover:text-slate-900 hover:bg-slate-100{% endif %}">
-                    <i class="fa-solid fa-pills mr-1"></i> Medicines
+                <a href="/medicines" {% if '/medicines' in request.url.path %}aria-current="page"{% endif %} class="px-3 py-1.5 rounded-xl transition {% if '/medicines' in request.url.path %}bg-brand-600 text-white shadow-sm{% else %}text-slate-600 hover:text-slate-900 hover:bg-slate-100{% endif %}">
+                    <i class="fa-solid fa-pills mr-1" aria-hidden="true"></i> Medicines
                 </a>
-                <a href="/appointments" class="px-3 py-1.5 rounded-xl transition {% if '/appointments' in request.url.path %}bg-brand-600 text-white shadow-sm{% else %}text-slate-600 hover:text-slate-900 hover:bg-slate-100{% endif %}">
-                    <i class="fa-solid fa-calendar-check mr-1"></i> Appointments
+                <a href="/appointments" {% if '/appointments' in request.url.path %}aria-current="page"{% endif %} class="px-3 py-1.5 rounded-xl transition {% if '/appointments' in request.url.path %}bg-brand-600 text-white shadow-sm{% else %}text-slate-600 hover:text-slate-900 hover:bg-slate-100{% endif %}">
+                    <i class="fa-solid fa-calendar-check mr-1" aria-hidden="true"></i> Appointments
                 </a>
-                <a href="/circle" class="px-3 py-1.5 rounded-xl transition {% if request.url.path == '/circle' %}bg-brand-600 text-white shadow-sm{% else %}text-slate-600 hover:text-slate-900 hover:bg-slate-100{% endif %}">
-                    <i class="fa-solid fa-people-roof mr-1"></i> Care Circle
+                <a href="/circle" {% if request.url.path == '/circle' %}aria-current="page"{% endif %} class="px-3 py-1.5 rounded-xl transition {% if request.url.path == '/circle' %}bg-brand-600 text-white shadow-sm{% else %}text-slate-600 hover:text-slate-900 hover:bg-slate-100{% endif %}">
+                    <i class="fa-solid fa-people-roof mr-1" aria-hidden="true"></i> Care Circle
                 </a>
-                <a href="/circle/activity" class="px-3 py-1.5 rounded-xl transition {% if request.url.path == '/circle/activity' %}bg-brand-600 text-white shadow-sm{% else %}text-slate-600 hover:text-slate-900 hover:bg-slate-100{% endif %}">
-                    <i class="fa-solid fa-clock-rotate-left mr-1"></i> Activity Log
+                <a href="/circle/activity" {% if request.url.path == '/circle/activity' %}aria-current="page"{% endif %} class="px-3 py-1.5 rounded-xl transition {% if request.url.path == '/circle/activity' %}bg-brand-600 text-white shadow-sm{% else %}text-slate-600 hover:text-slate-900 hover:bg-slate-100{% endif %}">
+                    <i class="fa-solid fa-clock-rotate-left mr-1" aria-hidden="true"></i> Activity Log
                 </a>
-                <a href="/assistant" class="px-3 py-1.5 rounded-xl transition {% if '/assistant' in request.url.path %}bg-teal-600 text-white shadow-sm{% else %}text-teal-800 bg-teal-50 hover:bg-teal-100 border border-teal-200{% endif %}">
-                    <i class="fa-solid fa-wand-magic-sparkles mr-1 text-teal-600"></i> Ask CareMe
+                <a href="/assistant" {% if '/assistant' in request.url.path %}aria-current="page"{% endif %} class="px-3 py-1.5 rounded-xl transition {% if '/assistant' in request.url.path %}bg-teal-600 text-white shadow-sm{% else %}text-teal-900 bg-teal-50 hover:bg-teal-100 border border-teal-200{% endif %}">
+                    <i class="fa-solid fa-wand-magic-sparkles mr-1 text-teal-700" aria-hidden="true"></i> Ask CareMe
                 </a>
-                <a href="/settings" class="px-3 py-1.5 rounded-xl transition {% if '/settings' in request.url.path %}bg-brand-600 text-white shadow-sm{% else %}text-slate-600 hover:text-slate-900 hover:bg-slate-100{% endif %}">
-                    <i class="fa-solid fa-gear mr-1"></i> Settings
+                <a href="/settings" {% if '/settings' in request.url.path %}aria-current="page"{% endif %} class="px-3 py-1.5 rounded-xl transition {% if '/settings' in request.url.path %}bg-brand-600 text-white shadow-sm{% else %}text-slate-600 hover:text-slate-900 hover:bg-slate-100{% endif %}">
+                    <i class="fa-solid fa-gear mr-1" aria-hidden="true"></i> Settings
                 </a>
                 {% if demo_mode %}
-                <a href="/demo" class="px-3 py-1.5 rounded-xl transition {% if '/demo' in request.url.path %}bg-amber-600 text-white shadow-sm{% else %}text-amber-800 bg-amber-50 hover:bg-amber-100 border border-amber-200{% endif %}">
-                    <i class="fa-solid fa-sliders mr-1"></i> Demo Simulator
+                <a href="/demo" {% if '/demo' in request.url.path %}aria-current="page"{% endif %} class="px-3 py-1.5 rounded-xl transition {% if '/demo' in request.url.path %}bg-amber-600 text-white shadow-sm{% else %}text-amber-950 bg-amber-50 hover:bg-amber-100 border border-amber-300 font-bold{% endif %}">
+                    <i class="fa-solid fa-sliders mr-1" aria-hidden="true"></i> Demo Simulator
                 </a>
                 {% endif %}
             </nav>
@@ -261,25 +263,25 @@
     </header>
 
     <!-- Main Content Area -->
-    <main class="flex-1 max-w-7xl w-full mx-auto px-3 sm:px-6 lg:px-8 py-4 sm:py-6">
-        <!-- Flash Messages -->
+    <main id="main-content" class="flex-1 max-w-7xl w-full mx-auto px-3 sm:px-6 lg:px-8 py-4 sm:py-6">
+        <!-- Flash Messages with Live Region Accessibility -->
         {% if request.query_params.get('success') %}
-        <div class="mb-5 bg-emerald-50 border border-emerald-200 text-emerald-800 px-4 py-3 rounded-2xl flex items-center gap-2.5 shadow-sm text-sm">
-            <i class="fa-solid fa-circle-check text-emerald-600 text-base"></i>
+        <div role="status" aria-live="polite" class="mb-5 bg-emerald-50 border border-emerald-200 text-emerald-900 px-4 py-3 rounded-2xl flex items-center gap-2.5 shadow-sm text-sm">
+            <i class="fa-solid fa-circle-check text-emerald-600 text-base" aria-hidden="true"></i>
             <span>{{ request.query_params.get('success') }}</span>
         </div>
         {% endif %}
 
         {% if request.query_params.get('error') %}
-        <div class="mb-5 bg-rose-50 border border-rose-200 text-rose-800 px-4 py-3 rounded-2xl flex items-center gap-2.5 shadow-sm text-sm">
-            <i class="fa-solid fa-circle-exclamation text-rose-600 text-base"></i>
+        <div role="alert" class="mb-5 bg-rose-50 border border-rose-200 text-rose-900 px-4 py-3 rounded-2xl flex items-center gap-2.5 shadow-sm text-sm">
+            <i class="fa-solid fa-circle-exclamation text-rose-600 text-base" aria-hidden="true"></i>
             <span>{{ request.query_params.get('error') }}</span>
         </div>
         {% endif %}
 
         {% if request.query_params.get('info') %}
-        <div class="mb-5 bg-blue-50 border border-blue-200 text-blue-800 px-4 py-3 rounded-2xl flex items-center gap-2.5 shadow-sm text-sm">
-            <i class="fa-solid fa-circle-info text-blue-600 text-base"></i>
+        <div role="status" aria-live="polite" class="mb-5 bg-blue-50 border border-blue-200 text-blue-900 px-4 py-3 rounded-2xl flex items-center gap-2.5 shadow-sm text-sm">
+            <i class="fa-solid fa-circle-info text-blue-600 text-base" aria-hidden="true"></i>
             <span>{{ request.query_params.get('info') }}</span>
         </div>
         {% endif %}

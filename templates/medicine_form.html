@@ -63,10 +63,10 @@
         <!-- Upload & Camera Dropzone Container -->
         <div id="upload-zone" class="space-y-4">
             <!-- Hidden File Input for Standard File Browsing (Desktop / Mobile Gallery) -->
-            <input type="file" id="prescription-browse-input" accept="image/jpeg,image/png,image/jpg,image/webp" class="hidden" onchange="handleFilePicked(this)">
+            <input type="file" id="prescription-browse-input" accept="image/jpeg,image/png,image/jpg,image/webp" class="hidden" onchange="handleFilePicked(this)" aria-label="Upload prescription image">
             
             <!-- Hidden File Input for Phone Native Camera Fallback if getUserMedia is blocked or unsupported -->
-            <input type="file" id="prescription-camera-fallback" accept="image/*" capture="environment" class="hidden" onchange="handleFilePicked(this)">
+            <input type="file" id="prescription-camera-fallback" accept="image/*" capture="environment" class="hidden" onchange="handleFilePicked(this)" aria-label="Native camera photo capture">
 
             <!-- Interactive Dropzone Area -->
             <div id="drop-area"
@@ -77,7 +77,7 @@
                 class="border-2 border-dashed border-teal-300 hover:border-brand-500 rounded-3xl p-6 sm:p-8 text-center cursor-pointer bg-teal-50/30 hover:bg-teal-50/60 transition group">
                 
                 <div class="w-16 h-16 rounded-2xl bg-white text-teal-600 group-hover:text-brand-600 border border-teal-200 flex items-center justify-center text-2xl mx-auto shadow-sm group-hover:scale-105 transition">
-                    <i class="fa-solid fa-camera"></i>
+                    <i class="fa-solid fa-camera" aria-hidden="true"></i>
                 </div>
 
                 <div class="mt-3 space-y-1">
@@ -85,20 +85,20 @@
                         <span class="text-brand-600">Snap a photo</span> or choose image file
                     </p>
                     <p class="text-xs text-slate-500">
-                        Supports live camera capture, JPG, PNG, and WebP (up to 15MB)
+                        Supports live camera capture, JPG, PNG, and WebP (up to 10MB)
                     </p>
                 </div>
 
                 <!-- Two Trigger Pills -->
                 <div class="flex items-center justify-center gap-3 mt-4" onclick="event.stopPropagation()">
-                    <button type="button" onclick="openCameraModal()"
+                    <button type="button" onclick="openCameraModal()" aria-label="Use camera to scan prescription"
                         class="bg-white hover:bg-slate-50 active:scale-95 text-slate-800 font-bold px-4 py-2.5 rounded-xl text-xs border border-slate-200 shadow-sm flex items-center gap-2 transition hover:border-teal-500 hover:text-teal-700">
-                        <i class="fa-solid fa-camera text-teal-600"></i>
+                        <i class="fa-solid fa-camera text-teal-600" aria-hidden="true"></i>
                         <span>Use Camera</span>
                     </button>
-                    <button type="button" onclick="document.getElementById('prescription-browse-input').click()"
+                    <button type="button" onclick="document.getElementById('prescription-browse-input').click()" aria-label="Browse prescription image files"
                         class="bg-brand-50 hover:bg-brand-100 active:scale-95 text-brand-800 font-bold px-4 py-2.5 rounded-xl text-xs border border-brand-200 shadow-sm flex items-center gap-2 transition">
-                        <i class="fa-solid fa-folder-open text-brand-600"></i>
+                        <i class="fa-solid fa-folder-open text-brand-600" aria-hidden="true"></i>
                         <span>Browse Files</span>
                     </button>
                 </div>
@@ -137,11 +137,11 @@
         </div>
 
         <!-- Real-Time Scanning Spinner -->
-        <div id="scanning-state" class="hidden text-center py-8 space-y-3 bg-teal-50/40 rounded-2xl border border-teal-200/60 p-6">
+        <div id="scanning-state" role="status" aria-live="polite" class="hidden text-center py-8 space-y-3 bg-teal-50/40 rounded-2xl border border-teal-200/60 p-6">
             <div class="inline-block relative">
                 <div class="w-14 h-14 rounded-full border-4 border-teal-200 border-t-brand-600 animate-spin mx-auto"></div>
                 <div class="absolute inset-0 flex items-center justify-center text-brand-600 text-lg">
-                    <i class="fa-solid fa-brain"></i>
+                    <i class="fa-solid fa-brain" aria-hidden="true"></i>
                 </div>
             </div>
             <div>
@@ -153,9 +153,9 @@
         </div>
 
         <!-- Friendly Error Banner (Camera errors & Scan errors with Fallback) -->
-        <div id="scan-error-alert" class="hidden bg-rose-50 border-2 border-rose-200 rounded-2xl p-4 sm:p-5 flex items-start gap-3.5 text-rose-900">
+        <div id="scan-error-alert" role="alert" class="hidden bg-rose-50 border-2 border-rose-200 rounded-2xl p-4 sm:p-5 flex items-start gap-3.5 text-rose-900">
             <div class="w-9 h-9 rounded-xl bg-rose-500 text-white flex items-center justify-center text-base flex-shrink-0 shadow-sm" id="error-alert-icon">
-                <i class="fa-solid fa-triangle-exclamation"></i>
+                <i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i>
             </div>
             <div class="flex-1 text-xs">
                 <p class="font-extrabold text-rose-950 text-sm" id="scan-error-title">Prescription Scan Notice</p>
@@ -163,11 +163,11 @@
                     Could not decipher prescription clearly. Please re-take a clearer photo or enter details manually below.
                 </p>
                 <p class="mt-2 text-rose-700 font-semibold" id="scan-error-footer">
-                    <i class="fa-solid fa-arrow-down mr-1"></i> You can proceed directly using the standard manual form below.
+                    <i class="fa-solid fa-arrow-down mr-1" aria-hidden="true"></i> You can proceed directly using the standard manual form below.
                 </p>
             </div>
-            <button type="button" onclick="document.getElementById('scan-error-alert').classList.add('hidden')" class="text-rose-400 hover:text-rose-600 text-base">
-                <i class="fa-solid fa-xmark"></i>
+            <button type="button" onclick="document.getElementById('scan-error-alert').classList.add('hidden')" aria-label="Dismiss scan error notification" class="text-rose-400 hover:text-rose-600 text-base">
+                <i class="fa-solid fa-xmark" aria-hidden="true"></i>
             </button>
         </div>
 
@@ -278,29 +278,29 @@
         <form method="POST" action="{{ '/medicines/edit/' + medicine.id|string if action == 'edit' else '/medicines/add' }}" class="space-y-4" id="manual-medicine-form">
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                    <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Medicine Name *</label>
-                    <input type="text" name="name" required value="{{ medicine.name if medicine else '' }}" placeholder="e.g. Metformin, Amlodipine"
+                    <label for="manual-med-name" class="block text-xs font-bold text-slate-700 uppercase mb-1">Medicine Name *</label>
+                    <input type="text" id="manual-med-name" name="name" required value="{{ medicine.name if medicine else '' }}" placeholder="e.g. Metformin, Amlodipine"
                         class="w-full px-4 py-2.5 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-brand-500 text-sm">
                 </div>
                 <div>
-                    <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Dosage *</label>
-                    <input type="text" name="dosage" required value="{{ medicine.dosage if medicine else '' }}" placeholder="e.g. 500mg, 10mg"
+                    <label for="manual-med-dosage" class="block text-xs font-bold text-slate-700 uppercase mb-1">Dosage *</label>
+                    <input type="text" id="manual-med-dosage" name="dosage" required value="{{ medicine.dosage if medicine else '' }}" placeholder="e.g. 500mg, 10mg"
                         class="w-full px-4 py-2.5 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-brand-500 text-sm">
                 </div>
             </div>
 
             <div>
-                <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Instructions & Administration</label>
-                <input type="text" name="instructions" value="{{ medicine.instructions if medicine else '' }}" placeholder="e.g. Take after breakfast with water"
+                <label for="manual-med-instructions" class="block text-xs font-bold text-slate-700 uppercase mb-1">Instructions & Administration</label>
+                <input type="text" id="manual-med-instructions" name="instructions" value="{{ medicine.instructions if medicine else '' }}" placeholder="e.g. Take after breakfast with water"
                     class="w-full px-4 py-2.5 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-brand-500 text-sm">
             </div>
 
             <div>
-                <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Daily Schedule Times (24h format, comma separated) *</label>
-                <input type="text" name="times_raw" required value="{{ times_str if times_str else '08:00, 14:00' }}" placeholder="08:00, 14:00, 20:00"
+                <label for="manual-med-times" class="block text-xs font-bold text-slate-700 uppercase mb-1">Daily Schedule Times (24h format, comma separated) *</label>
+                <input type="text" id="manual-med-times" name="times_raw" required value="{{ times_str if times_str else '08:00, 14:00' }}" placeholder="08:00, 14:00, 20:00"
                     class="w-full px-4 py-2.5 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-brand-500 text-sm font-mono">
-                <div class="flex items-center gap-2 mt-1.5 text-[11px] text-slate-400">
-                    <span class="font-bold text-slate-500">Quick suggestions:</span>
+                <div class="flex items-center gap-2 mt-1.5 text-[11px] text-slate-500">
+                    <span class="font-bold text-slate-600">Quick suggestions:</span>
                     <button type="button" onclick="setTimes('08:00')" class="underline hover:text-brand-600">Once daily (08:00)</button> •
                     <button type="button" onclick="setTimes('08:00, 20:00')" class="underline hover:text-brand-600">Twice daily (08:00, 20:00)</button> •
                     <button type="button" onclick="setTimes('08:00, 14:00, 20:00')" class="underline hover:text-brand-600">Thrice daily</button>
@@ -308,8 +308,8 @@
             </div>
 
             <div>
-                <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Days of Week (comma separated)</label>
-                <input type="text" name="days_raw" value="{{ days_str if days_str else 'Mon, Tue, Wed, Thu, Fri, Sat, Sun' }}"
+                <label for="manual-med-days" class="block text-xs font-bold text-slate-700 uppercase mb-1">Days of Week (comma separated)</label>
+                <input type="text" id="manual-med-days" name="days_raw" value="{{ days_str if days_str else 'Mon, Tue, Wed, Thu, Fri, Sat, Sun' }}"
                     class="w-full px-4 py-2.5 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-brand-500 text-sm">
             </div>
 

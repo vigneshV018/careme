@@ -67,7 +67,7 @@
             </div>
 
             <!-- Chat Messages Scroll Container -->
-            <div id="chat-messages" class="flex-1 p-4 sm:p-6 overflow-y-auto space-y-4">
+            <div id="chat-messages" role="log" aria-live="polite" aria-label="CareMe Chat Conversation" class="flex-1 p-4 sm:p-6 overflow-y-auto space-y-4">
                 
                 <!-- Initial AI Greeting -->
                 <div class="flex items-start gap-3">
@@ -106,12 +106,14 @@
             <!-- Input Area -->
             <div class="p-4 border-t border-slate-200 bg-white space-y-2">
                 <form id="chat-form" onsubmit="handleChatSubmit(event)" class="flex items-center gap-2">
+                    <label for="chat-input" class="sr-only">Ask a question about medication schedule, adherence, or doctor visit questions</label>
                     <input type="text" id="chat-input" placeholder="Ask about schedule, missed doses, or doctor questions..." autocomplete="off"
+                        aria-label="Ask a question about medication schedule, adherence, or doctor visit questions"
                         class="flex-1 bg-slate-50 border border-slate-300 focus:border-brand-500 focus:bg-white rounded-2xl px-4 py-3 text-xs sm:text-sm text-slate-800 placeholder-slate-400 outline-none transition">
-                    <button type="submit" id="chat-send-btn"
+                    <button type="submit" id="chat-send-btn" aria-label="Send question to CareMe Assistant"
                         class="bg-brand-600 hover:bg-brand-700 disabled:opacity-50 text-white font-extrabold px-5 py-3 rounded-2xl text-xs sm:text-sm shadow-md shadow-brand-600/20 flex items-center gap-2 transition flex-shrink-0">
                         <span>Send</span>
-                        <i class="fa-solid fa-paper-plane"></i>
+                        <i class="fa-solid fa-paper-plane" aria-hidden="true"></i>
                     </button>
                 </form>
 
