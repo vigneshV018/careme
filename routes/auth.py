@@ -1,4 +1,5 @@
 import random
+import logging
 from fastapi import APIRouter, Request, Response, Depends, Form, HTTPException, status
 from fastapi.responses import HTMLResponse, RedirectResponse
 from template_config import templates
@@ -15,11 +16,14 @@ from services.rate_limiter import check_login_rate_limit, record_failed_login, r
 from services.email_service import send_email
 from services.timezone import now_kolkata
 
+logger = logging.getLogger("careme.auth")
+
 router = APIRouter(prefix="", tags=["auth"])
 
 # -----------------------------------------------------------------------------
 # Login Endpoints
 # -----------------------------------------------------------------------------
+@router.get("/", response_class=HTMLResponse)
 @router.get("/login", response_class=HTMLResponse)
 @router.get("/auth/login", response_class=HTMLResponse)
 def login_page(request: Request, error: str = None, success: str = None, db: Session = Depends(get_db)):
@@ -27,6 +31,12 @@ def login_page(request: Request, error: str = None, success: str = None, db: Ses
     if current_user:
         return RedirectResponse(url="/dashboard", status_code=status.HTTP_302_FOUND)
     
+    # Check query params for error or success if not explicitly provided
+    if not error:
+        error = request.query_params.get("error")
+    if not success:
+        success = request.query_params.get("success")
+
     demo_users = db.query(User).all()
     return templates.TemplateResponse("login.html", {
         "request": request,
@@ -50,30 +60,49 @@ def login_post(
     is_locked, remaining_secs = check_login_rate_limit(clean_email)
     if is_locked:
         mins = max(1, (remaining_secs + 59) // 60)
+        logger.warning(f"Login failed: Rate limit locked for '{clean_email}' ({mins} mins remaining)")
         return RedirectResponse(
-            url=f"/login?error=Too+many+failed+login+attempts.+Account+locked+for+{mins}+minutes",
+            url=f"/login?error=Too+many+failed+login+attempts.+Account+locked+for+{mins}+minutes&tab=password",
             status_code=status.HTTP_302_FOUND
         )
 
     user = db.query(User).filter(User.email == clean_email).first()
-    if not user or not verify_password(password, user.password_hash):
+    if not user:
+        logger.warning(f"Login failed: User with email '{clean_email}' not found")
+        attempts, lockout = record_failed_login(clean_email)
+        rem = max(0, 5 - attempts)
+        return RedirectResponse(
+            url=f"/login?error=Invalid+email+or+password.+({rem}+attempts+remaining)&tab=password",
+            status_code=status.HTTP_302_FOUND
+        )
+
+    if not verify_password(password, user.password_hash):
+        logger.warning(f"Login failed: Incorrect password for user '{clean_email}'")
         attempts, lockout = record_failed_login(clean_email)
         if lockout > 0:
             return RedirectResponse(
-                url="/login?error=Too+many+failed+login+attempts.+Account+locked+for+5+minutes",
+                url="/login?error=Too+many+failed+login+attempts.+Account+locked+for+5+minutes&tab=password",
                 status_code=status.HTTP_302_FOUND
             )
         rem = max(0, 5 - attempts)
         return RedirectResponse(
-            url=f"/login?error=Invalid+email+or+password.+({rem}+attempts+remaining)",
+            url=f"/login?error=Invalid+email+or+password.+({rem}+attempts+remaining)&tab=password",
             status_code=status.HTTP_302_FOUND
         )
 
-    # Success: reset rate limiter
+    # Success: reset rate limiter and set session cookie
     reset_login_rate_limit(clean_email)
-    redirect = RedirectResponse(url="/dashboard", status_code=status.HTTP_302_FOUND)
-    login_user(redirect, user.id, request)
-    return redirect
+    try:
+        redirect = RedirectResponse(url="/dashboard", status_code=status.HTTP_302_FOUND)
+        login_user(redirect, user.id, request)
+        logger.info(f"Successful email login for user '{user.email}' (ID: {user.id})")
+        return redirect
+    except Exception as e:
+        logger.error(f"Login failed: Session could not be saved for '{clean_email}': {e}", exc_info=True)
+        return RedirectResponse(
+            url="/login?error=Session+could+not+be+saved&tab=password",
+            status_code=status.HTTP_302_FOUND
+        )
 
 @router.post("/login/pin")
 @router.post("/login-pin")
@@ -92,8 +121,9 @@ def login_pin(
     is_locked, remaining_secs = check_login_rate_limit(rate_key)
     if is_locked:
         mins = max(1, (remaining_secs + 59) // 60)
+        logger.warning(f"Login failed: PIN rate limit locked for IP {client_ip} ({mins} mins remaining)")
         return RedirectResponse(
-            url=f"/login?error=Too+many+failed+PIN+attempts.+Locked+for+{mins}+minutes",
+            url=f"/login?error=Too+many+failed+PIN+attempts.+Locked+for+{mins}+minutes&tab=pin",
             status_code=status.HTTP_302_FOUND
         )
 
@@ -105,35 +135,64 @@ def login_pin(
             break
 
     if not matched_user:
+        logger.warning(f"Login failed: Wrong PIN entered from IP {client_ip}")
         attempts, lockout = record_failed_login(rate_key)
         if lockout > 0:
             return RedirectResponse(
-                url="/login?error=Too+many+failed+PIN+attempts.+Locked+for+5+minutes",
+                url="/login?error=Too+many+failed+PIN+attempts.+Locked+for+5+minutes&tab=pin",
                 status_code=status.HTTP_302_FOUND
             )
         return RedirectResponse(
-            url="/login?error=Invalid+PIN.+Please+try+again",
+            url="/login?error=Wrong+PIN&tab=pin",
             status_code=status.HTTP_302_FOUND
         )
 
     # Success: reset rate limiter
     reset_login_rate_limit(rate_key)
-    redirect = RedirectResponse(url="/dashboard", status_code=status.HTTP_302_FOUND)
-    login_user(redirect, matched_user.id, request)
-    return redirect
+    try:
+        redirect = RedirectResponse(url="/dashboard", status_code=status.HTTP_302_FOUND)
+        login_user(redirect, matched_user.id, request)
+        logger.info(f"Successful PIN login for user '{matched_user.name}' (ID: {matched_user.id})")
+        return redirect
+    except Exception as e:
+        logger.error(f"Login failed: Session could not be saved for PIN login: {e}", exc_info=True)
+        return RedirectResponse(
+            url="/login?error=Session+could+not+be+saved&tab=pin",
+            status_code=status.HTTP_302_FOUND
+        )
 
 @router.get("/auth/switch/{user_id}")
 def quick_switch(user_id: int, request: Request, db: Session = Depends(get_db)):
     from config import DEMO_MODE
     if not DEMO_MODE:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Persona switcher is disabled in production.")
+    
     user = db.query(User).filter(User.id == user_id).first()
     if not user:
-        return RedirectResponse(url="/login", status_code=status.HTTP_302_FOUND)
+        # Fallback by demo role/name index if IDs shifted
+        name_map = {1: "Lakshmi", 2: "Arun", 3: "Priya", 4: "Meena"}
+        target_name = name_map.get(user_id)
+        if target_name:
+            user = db.query(User).filter(User.name.ilike(f"{target_name}%")).first()
+
+    if not user:
+        logger.warning(f"Login failed: Demo persona ID {user_id} not found in database")
+        return RedirectResponse(
+            url="/login?error=Demo+persona+not+found.+Please+reseed+the+database&tab=demo",
+            status_code=status.HTTP_302_FOUND
+        )
     
-    redirect = RedirectResponse(url="/dashboard", status_code=status.HTTP_302_FOUND)
-    login_user(redirect, user.id, request)
-    return redirect
+    try:
+        redirect = RedirectResponse(url="/dashboard", status_code=status.HTTP_302_FOUND)
+        login_user(redirect, user.id, request)
+        logger.info(f"Successful demo switch to persona '{user.name}' (ID: {user.id})")
+        return redirect
+    except Exception as e:
+        logger.error(f"Login failed: Session could not be saved for demo switch: {e}", exc_info=True)
+        return RedirectResponse(
+            url="/login?error=Session+could+not+be+saved&tab=demo",
+            status_code=status.HTTP_302_FOUND
+        )
 
 # -----------------------------------------------------------------------------
 # Registration & Onboarding

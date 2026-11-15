@@ -40,25 +40,66 @@ def verify_pin(plain_pin: str, hashed_pin: str) -> bool:
     except Exception:
         return False
 
+def is_request_https(request: Request = None) -> bool:
+    """Checks whether the incoming request is HTTPS either directly or via reverse proxy headers."""
+    if not request:
+        return False
+    if getattr(request, "url", None) and request.url.scheme == "https":
+        return True
+    if hasattr(request, "headers"):
+        x_proto = request.headers.get("x-forwarded-proto", "")
+        if x_proto:
+            first_proto = x_proto.split(",")[0].strip().lower()
+            if first_proto == "https":
+                return True
+        x_ssl = request.headers.get("x-forwarded-ssl", "").strip().lower()
+        if x_ssl in ("on", "1"):
+            return True
+    return False
+
+def create_session_token(user_id: int) -> str:
+    """Creates a cryptographically signed session token: {user_id}.{sig}."""
+    payload = str(user_id)
+    sig = hmac.new(SECRET_KEY.encode("utf-8"), payload.encode("utf-8"), hashlib.sha256).hexdigest()
+    return f"{payload}.{sig}"
+
+def extract_user_id(token: str) -> int | None:
+    """Extracts and verifies user ID from signed token or unsigned fallback."""
+    if not token:
+        return None
+    token = str(token).strip()
+    if "." in token:
+        parts = token.split(".", 1)
+        payload, sig = parts[0], parts[1]
+        expected_sig = hmac.new(SECRET_KEY.encode("utf-8"), payload.encode("utf-8"), hashlib.sha256).hexdigest()
+        if hmac.compare_digest(sig, expected_sig):
+            try:
+                return int(payload)
+            except ValueError:
+                return None
+    # Fallback to plain integer if unsigned legacy cookie
+    try:
+        return int(token)
+    except ValueError:
+        return None
+
 def login_user(response: Response, user_id: int, request: Request = None):
-    is_https = False
-    if request:
-        is_https = (request.url.scheme == "https" or request.headers.get("x-forwarded-proto") == "https")
-    # Secure flag only when DEMO_MODE=false and request is HTTPS, so http://127.0.0.1 still works locally
-    is_secure = (not DEMO_MODE and is_https)
+    is_secure = is_request_https(request)
+    token = create_session_token(user_id)
 
     response.set_cookie(
         key=COOKIE_NAME,
-        value=str(user_id),
+        value=token,
         httponly=True,
         max_age=86400 * 7,
         samesite="lax",
+        path="/",
         secure=is_secure
     )
 
 def logout_user(response: Response):
-    response.delete_cookie(key=COOKIE_NAME)
-    response.delete_cookie(key=LEGACY_COOKIE_NAME)
+    response.delete_cookie(key=COOKIE_NAME, path="/")
+    response.delete_cookie(key=LEGACY_COOKIE_NAME, path="/")
 
 def generate_password_reset_token(user: User) -> str:
     """
@@ -105,11 +146,13 @@ def verify_password_reset_token(token: str, db: Session) -> User | None:
         return None
 
 def get_current_user_optional(request: Request, db: Session = Depends(get_db)) -> User | None:
-    user_id_str = request.cookies.get(COOKIE_NAME) or request.cookies.get(LEGACY_COOKIE_NAME)
-    if not user_id_str:
+    token_str = request.cookies.get(COOKIE_NAME) or request.cookies.get(LEGACY_COOKIE_NAME)
+    if not token_str:
+        return None
+    user_id = extract_user_id(token_str)
+    if not user_id:
         return None
     try:
-        user_id = int(user_id_str)
         user = db.query(User).filter(User.id == user_id).first()
         return user
     except Exception:

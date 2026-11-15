@@ -33,6 +33,27 @@
         </div>
 
         <div class="p-6 sm:p-8">
+            {% set display_error = error or (request and request.query_params.get('error')) %}
+            {% if display_error %}
+            <div class="mb-6 bg-rose-50 border-2 border-rose-300 text-rose-900 text-sm font-semibold px-4 py-3.5 rounded-2xl flex items-center gap-3 shadow-sm">
+                <i class="fa-solid fa-circle-exclamation text-rose-600 text-xl flex-shrink-0"></i>
+                <div class="flex-1">
+                    <p class="font-bold text-rose-800">Login Failed</p>
+                    <p class="text-xs text-rose-700 mt-0.5">{{ display_error }}</p>
+                </div>
+            </div>
+            {% endif %}
+
+            {% set display_success = success or (request and request.query_params.get('success')) %}
+            {% if display_success %}
+            <div class="mb-6 bg-emerald-50 border-2 border-emerald-300 text-emerald-900 text-sm font-semibold px-4 py-3.5 rounded-2xl flex items-center gap-3 shadow-sm">
+                <i class="fa-solid fa-circle-check text-emerald-600 text-xl flex-shrink-0"></i>
+                <div class="flex-1">
+                    <p class="text-xs text-emerald-800 font-semibold">{{ display_success }}</p>
+                </div>
+            </div>
+            {% endif %}
+
             {% if demo_mode %}
             <!-- TAB 1: 1-Click Demo Accounts -->
             <div id="tab-content-demo" class="space-y-4">
@@ -222,6 +243,21 @@ function appendPin(digit) {
 function clearPin() {
     document.getElementById('pin-input').value = '';
 }
+
+// Auto-switch tab based on URL query params or error message
+document.addEventListener("DOMContentLoaded", function() {
+    const urlParams = new URLSearchParams(window.location.search);
+    const tabParam = urlParams.get('tab');
+    const errParam = (urlParams.get('error') || "").toLowerCase();
+    
+    if (tabParam && ['demo', 'pin', 'password'].includes(tabParam)) {
+        switchLoginTab(tabParam);
+    } else if (errParam.includes('pin')) {
+        switchLoginTab('pin');
+    } else if (errParam.includes('password') || errParam.includes('email')) {
+        switchLoginTab('password');
+    }
+});
 </script>
 {% endblock %}
 

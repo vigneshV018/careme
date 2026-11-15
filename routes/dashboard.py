@@ -17,13 +17,6 @@ from services.gemini_service import generate_weekly_summary
 
 router = APIRouter(tags=["dashboard"])
 
-@router.get("/")
-def home(request: Request, db: Session = Depends(get_db)):
-    user = get_current_user_optional(request, db)
-    if user:
-        return RedirectResponse(url="/dashboard", status_code=status.HTTP_302_FOUND)
-    return RedirectResponse(url="/login", status_code=status.HTTP_302_FOUND)
-
 @router.get("/dashboard", response_class=HTMLResponse)
 def dashboard(
     request: Request,

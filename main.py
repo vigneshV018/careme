@@ -51,19 +51,24 @@ async def lifespan(app: FastAPI):
     Base.metadata.create_all(bind=engine)
     
     # Auto-seed if database is empty ONLY when DEMO_MODE is true
+    user_count = 0
     db = SessionLocal()
     try:
         user_count = db.query(User).count()
-        if user_count == 0:
-            if config.DEMO_MODE:
-                logger.info("Empty database detected and DEMO_MODE=true. Auto-seeding initial CareMe demo data...")
-                seed()
-            else:
-                logger.info("Empty database detected with DEMO_MODE=false. Fresh production database initialized without demo users.")
     except Exception as e:
-        logger.error(f"Error checking/seeding database: {e}")
+        logger.error(f"Error checking database user count: {e}")
     finally:
         db.close()
+
+    if user_count == 0:
+        if config.DEMO_MODE:
+            logger.info("Empty database detected and DEMO_MODE=true. Auto-seeding initial CareMe demo data...")
+            try:
+                seed()
+            except Exception as e:
+                logger.error(f"Error auto-seeding demo data: {e}")
+        else:
+            logger.info("Empty database detected with DEMO_MODE=false. Fresh production database initialized without demo users.")
 
     # Start background scheduler for dose reminders and escalations
     try:
@@ -102,7 +107,9 @@ async def get_service_worker():
 
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
-# CSRF Protection Middleware
+# Reverse Proxy & CSRF Middleware
+from uvicorn.middleware.proxy_headers import ProxyHeadersMiddleware
+app.add_middleware(ProxyHeadersMiddleware, trusted_hosts="*")
 app.add_middleware(CSRFMiddleware)
 
 # Include Routers
@@ -118,9 +125,10 @@ app.include_router(api_router)
 app.include_router(demo_router)
 app.include_router(assistant_router)
 
-# Friendly Error Handlers (Requirement 3)
+# Friendly Error Handlers (Requirement 3 & 6)
 from template_config import templates
 from starlette.exceptions import HTTPException as StarletteHTTPException
+from fastapi.exceptions import HTTPException as FastAPIHTTPException
 from fastapi.responses import JSONResponse, RedirectResponse
 
 @app.exception_handler(404)
@@ -137,36 +145,41 @@ def server_error_handler(request: Request, exc):
     return templates.TemplateResponse("500.html", {"request": request}, status_code=500)
 
 @app.exception_handler(StarletteHTTPException)
-def http_exception_handler(request: Request, exc: StarletteHTTPException):
-    # 1. Real RedirectResponse for any 3xx status (Requirement 3)
-    if 300 <= exc.status_code < 400:
-        location = exc.headers.get("Location") if exc.headers else None
+@app.exception_handler(FastAPIHTTPException)
+def http_exception_handler(request: Request, exc: Exception):
+    status_code = getattr(exc, "status_code", 500)
+    headers = getattr(exc, "headers", None)
+    detail = getattr(exc, "detail", str(exc))
+
+    # 1. Real RedirectResponse for any 3xx status (Requirement 6)
+    if 300 <= status_code < 400:
+        location = headers.get("Location") if headers else None
         if not location:
             location = "/login"
-        return RedirectResponse(url=location, status_code=exc.status_code)
+        return RedirectResponse(url=location, status_code=status_code)
 
     # 2. Redirect unauthenticated browser requests to /login
-    if exc.status_code in (401, 403):
+    if status_code in (401, 403):
         if request.url.path.startswith("/api/") or "application/json" in request.headers.get("accept", ""):
-            return JSONResponse({"detail": exc.detail}, status_code=exc.status_code)
+            return JSONResponse({"detail": detail}, status_code=status_code)
         return RedirectResponse(url="/login?error=Please+log+in+to+continue", status_code=302)
 
     # 3. Only show friendly 404 page for real not found errors
-    if exc.status_code == 404:
+    if status_code == 404:
         if request.url.path.startswith("/api/") or "application/json" in request.headers.get("accept", ""):
-            return JSONResponse({"detail": exc.detail}, status_code=404)
+            return JSONResponse({"detail": detail}, status_code=404)
         return templates.TemplateResponse("404.html", {"request": request}, status_code=404)
 
     # 4. Only show friendly 500 page for real server errors
-    if exc.status_code >= 500:
+    if status_code >= 500:
         if request.url.path.startswith("/api/") or "application/json" in request.headers.get("accept", ""):
-            return JSONResponse({"detail": exc.detail}, status_code=exc.status_code)
-        return templates.TemplateResponse("500.html", {"request": request}, status_code=exc.status_code)
+            return JSONResponse({"detail": detail}, status_code=status_code)
+        return templates.TemplateResponse("500.html", {"request": request}, status_code=status_code)
 
-    return JSONResponse({"detail": exc.detail}, status_code=exc.status_code)
+    return JSONResponse({"detail": detail}, status_code=status_code)
 
 if __name__ == "__main__":
     import uvicorn
     port = int(os.environ.get("PORT", 8000))
-    uvicorn.run("main:app", host="0.0.0.0", port=port, reload=True)
+    uvicorn.run("main:app", host="0.0.0.0", port=port, proxy_headers=True, forwarded_allow_ips="*", reload=True)
 
