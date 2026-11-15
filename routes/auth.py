@@ -20,6 +20,7 @@ router = APIRouter(prefix="", tags=["auth"])
 # -----------------------------------------------------------------------------
 # Login Endpoints
 # -----------------------------------------------------------------------------
+@router.get("/login", response_class=HTMLResponse)
 @router.get("/auth/login", response_class=HTMLResponse)
 def login_page(request: Request, error: str = None, success: str = None, db: Session = Depends(get_db)):
     current_user = get_current_user_optional(request, db)
@@ -34,6 +35,7 @@ def login_page(request: Request, error: str = None, success: str = None, db: Ses
         "demo_users": demo_users
     })
 
+@router.post("/login")
 @router.post("/auth/login")
 def login_post(
     request: Request,
@@ -49,7 +51,7 @@ def login_post(
     if is_locked:
         mins = max(1, (remaining_secs + 59) // 60)
         return RedirectResponse(
-            url=f"/auth/login?error=Too+many+failed+login+attempts.+Account+locked+for+{mins}+minutes",
+            url=f"/login?error=Too+many+failed+login+attempts.+Account+locked+for+{mins}+minutes",
             status_code=status.HTTP_302_FOUND
         )
 
@@ -58,12 +60,12 @@ def login_post(
         attempts, lockout = record_failed_login(clean_email)
         if lockout > 0:
             return RedirectResponse(
-                url="/auth/login?error=Too+many+failed+login+attempts.+Account+locked+for+5+minutes",
+                url="/login?error=Too+many+failed+login+attempts.+Account+locked+for+5+minutes",
                 status_code=status.HTTP_302_FOUND
             )
         rem = max(0, 5 - attempts)
         return RedirectResponse(
-            url=f"/auth/login?error=Invalid+email+or+password.+({rem}+attempts+remaining)",
+            url=f"/login?error=Invalid+email+or+password.+({rem}+attempts+remaining)",
             status_code=status.HTTP_302_FOUND
         )
 
@@ -73,6 +75,9 @@ def login_post(
     login_user(redirect, user.id, request)
     return redirect
 
+@router.post("/login/pin")
+@router.post("/login-pin")
+@router.post("/auth/login-pin")
 @router.post("/auth/pin")
 def login_pin(
     request: Request,
@@ -88,7 +93,7 @@ def login_pin(
     if is_locked:
         mins = max(1, (remaining_secs + 59) // 60)
         return RedirectResponse(
-            url=f"/auth/login?error=Too+many+failed+PIN+attempts.+Locked+for+{mins}+minutes",
+            url=f"/login?error=Too+many+failed+PIN+attempts.+Locked+for+{mins}+minutes",
             status_code=status.HTTP_302_FOUND
         )
 
@@ -103,11 +108,11 @@ def login_pin(
         attempts, lockout = record_failed_login(rate_key)
         if lockout > 0:
             return RedirectResponse(
-                url="/auth/login?error=Too+many+failed+PIN+attempts.+Locked+for+5+minutes",
+                url="/login?error=Too+many+failed+PIN+attempts.+Locked+for+5+minutes",
                 status_code=status.HTTP_302_FOUND
             )
         return RedirectResponse(
-            url="/auth/login?error=Invalid+PIN.+Please+try+again",
+            url="/login?error=Invalid+PIN.+Please+try+again",
             status_code=status.HTTP_302_FOUND
         )
 
@@ -124,7 +129,7 @@ def quick_switch(user_id: int, request: Request, db: Session = Depends(get_db)):
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Persona switcher is disabled in production.")
     user = db.query(User).filter(User.id == user_id).first()
     if not user:
-        return RedirectResponse(url="/auth/login", status_code=status.HTTP_302_FOUND)
+        return RedirectResponse(url="/login", status_code=status.HTTP_302_FOUND)
     
     redirect = RedirectResponse(url="/dashboard", status_code=status.HTTP_302_FOUND)
     login_user(redirect, user.id, request)
@@ -133,6 +138,7 @@ def quick_switch(user_id: int, request: Request, db: Session = Depends(get_db)):
 # -----------------------------------------------------------------------------
 # Registration & Onboarding
 # -----------------------------------------------------------------------------
+@router.get("/register", response_class=HTMLResponse)
 @router.get("/auth/register", response_class=HTMLResponse)
 def register_page(request: Request, error: str = None, db: Session = Depends(get_db)):
     return templates.TemplateResponse("register.html", {
@@ -140,6 +146,7 @@ def register_page(request: Request, error: str = None, db: Session = Depends(get
         "error": error
     })
 
+@router.post("/register")
 @router.post("/auth/register")
 def register_post(
     request: Request,
@@ -366,6 +373,7 @@ def elder_onboarding_post(
 # -----------------------------------------------------------------------------
 # Forgot Password & Reset Password
 # -----------------------------------------------------------------------------
+@router.get("/forgot-password", response_class=HTMLResponse)
 @router.get("/auth/forgot-password", response_class=HTMLResponse)
 def forgot_password_page(request: Request, error: str = None, success: str = None):
     return templates.TemplateResponse("forgot_password.html", {
@@ -374,6 +382,7 @@ def forgot_password_page(request: Request, error: str = None, success: str = Non
         "success": success
     })
 
+@router.post("/forgot-password")
 @router.post("/auth/forgot-password")
 def forgot_password_post(
     request: Request,
@@ -385,7 +394,7 @@ def forgot_password_post(
 
     if user:
         token = generate_password_reset_token(user)
-        reset_url = str(request.base_url).rstrip("/") + f"/auth/reset-password?token={token}"
+        reset_url = str(request.base_url).rstrip("/") + f"/reset-password?token={token}"
 
         send_email(
             to_email=user.email,
@@ -411,10 +420,11 @@ def forgot_password_post(
 
     # Always return success message to prevent user enumeration
     return RedirectResponse(
-        url="/auth/forgot-password?success=If+an+account+exists+with+that+email,+a+secure+30-minute+reset+link+has+been+sent.",
+        url="/forgot-password?success=If+an+account+exists+with+that+email,+a+secure+30-minute+reset+link+has+been+sent.",
         status_code=status.HTTP_302_FOUND
     )
 
+@router.get("/reset-password", response_class=HTMLResponse)
 @router.get("/auth/reset-password", response_class=HTMLResponse)
 def reset_password_page(request: Request, token: str = "", error: str = None, db: Session = Depends(get_db)):
     user = verify_password_reset_token(token, db) if token else None
@@ -425,6 +435,7 @@ def reset_password_page(request: Request, token: str = "", error: str = None, db
         "error": error
     })
 
+@router.post("/reset-password")
 @router.post("/auth/reset-password")
 def reset_password_post(
     request: Request,
@@ -436,19 +447,19 @@ def reset_password_post(
     user = verify_password_reset_token(token, db)
     if not user:
         return RedirectResponse(
-            url="/auth/reset-password?token=" + token + "&error=Reset+link+is+invalid+or+has+expired.+Please+request+a+new+one.",
+            url="/reset-password?token=" + token + "&error=Reset+link+is+invalid+or+has+expired.+Please+request+a+new+one.",
             status_code=status.HTTP_302_FOUND
         )
 
     if len(password.strip()) < 8:
         return RedirectResponse(
-            url="/auth/reset-password?token=" + token + "&error=Password+must+be+at+least+8+characters+long.",
+            url="/reset-password?token=" + token + "&error=Password+must+be+at+least+8+characters+long.",
             status_code=status.HTTP_302_FOUND
         )
 
     if password.strip() != confirm_password.strip():
         return RedirectResponse(
-            url="/auth/reset-password?token=" + token + "&error=Passwords+do+not+match.+Please+try+again.",
+            url="/reset-password?token=" + token + "&error=Passwords+do+not+match.+Please+try+again.",
             status_code=status.HTTP_302_FOUND
         )
 
@@ -456,9 +467,34 @@ def reset_password_post(
     db.commit()
 
     return RedirectResponse(
-        url="/auth/login?success=Password+reset+successful.+Please+sign+in+with+your+new+password.",
+        url="/login?success=Password+reset+successful.+Please+sign+in+with+your+new+password.",
         status_code=status.HTTP_302_FOUND
     )
+
+# -----------------------------------------------------------------------------
+# Join Care Circle Endpoints (Direct /join route)
+# -----------------------------------------------------------------------------
+@router.get("/join", response_class=HTMLResponse)
+def join_circle_get(
+    request: Request,
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    return templates.TemplateResponse("join_circle.html", {
+        "request": request,
+        "user": user
+    })
+
+@router.post("/join")
+def join_circle_form_post(
+    request: Request,
+    passcode: str = Form(...),
+    relationship: str = Form("Family"),
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    from routes.circle import join_circle
+    return join_circle(request, passcode, relationship, user, db)
 
 # -----------------------------------------------------------------------------
 # Privacy Notice Page
@@ -470,8 +506,9 @@ def privacy_page(request: Request):
 # -----------------------------------------------------------------------------
 # Logout
 # -----------------------------------------------------------------------------
+@router.get("/logout")
 @router.get("/auth/logout")
 def logout():
-    redirect = RedirectResponse(url="/auth/login?success=Logged+out+successfully", status_code=status.HTTP_302_FOUND)
+    redirect = RedirectResponse(url="/login?success=Logged+out+successfully", status_code=status.HTTP_302_FOUND)
     logout_user(redirect)
     return redirect

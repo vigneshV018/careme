@@ -121,31 +121,48 @@ app.include_router(assistant_router)
 # Friendly Error Handlers (Requirement 3)
 from template_config import templates
 from starlette.exceptions import HTTPException as StarletteHTTPException
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, RedirectResponse
 
 @app.exception_handler(404)
-async def not_found_handler(request: Request, exc):
+def not_found_handler(request: Request, exc):
     if request.url.path.startswith("/api/") or "application/json" in request.headers.get("accept", ""):
         return JSONResponse({"detail": "Not Found"}, status_code=404)
     return templates.TemplateResponse("404.html", {"request": request}, status_code=404)
 
 @app.exception_handler(500)
-async def server_error_handler(request: Request, exc):
+def server_error_handler(request: Request, exc):
     logger.error(f"Internal server error on {request.url.path}: {exc}", exc_info=True)
     if request.url.path.startswith("/api/") or "application/json" in request.headers.get("accept", ""):
         return JSONResponse({"detail": "Internal Server Error"}, status_code=500)
     return templates.TemplateResponse("500.html", {"request": request}, status_code=500)
 
 @app.exception_handler(StarletteHTTPException)
-async def http_exception_handler(request: Request, exc: StarletteHTTPException):
+def http_exception_handler(request: Request, exc: StarletteHTTPException):
+    # 1. Real RedirectResponse for any 3xx status (Requirement 3)
+    if 300 <= exc.status_code < 400:
+        location = exc.headers.get("Location") if exc.headers else None
+        if not location:
+            location = "/login"
+        return RedirectResponse(url=location, status_code=exc.status_code)
+
+    # 2. Redirect unauthenticated browser requests to /login
+    if exc.status_code in (401, 403):
+        if request.url.path.startswith("/api/") or "application/json" in request.headers.get("accept", ""):
+            return JSONResponse({"detail": exc.detail}, status_code=exc.status_code)
+        return RedirectResponse(url="/login?error=Please+log+in+to+continue", status_code=302)
+
+    # 3. Only show friendly 404 page for real not found errors
     if exc.status_code == 404:
         if request.url.path.startswith("/api/") or "application/json" in request.headers.get("accept", ""):
             return JSONResponse({"detail": exc.detail}, status_code=404)
         return templates.TemplateResponse("404.html", {"request": request}, status_code=404)
+
+    # 4. Only show friendly 500 page for real server errors
     if exc.status_code >= 500:
         if request.url.path.startswith("/api/") or "application/json" in request.headers.get("accept", ""):
             return JSONResponse({"detail": exc.detail}, status_code=exc.status_code)
         return templates.TemplateResponse("500.html", {"request": request}, status_code=exc.status_code)
+
     return JSONResponse({"detail": exc.detail}, status_code=exc.status_code)
 
 if __name__ == "__main__":

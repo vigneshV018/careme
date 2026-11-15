@@ -9,7 +9,7 @@ from models import (
     User, CareCircle, Membership, Medicine, DoseLog,
     Appointment, EmergencyAlert, ActivityLog, Notification
 )
-from services.auth_service import get_current_user
+from services.auth_service import get_current_user, get_current_user_optional
 from services.notification_service import get_user_circle, get_user_permissions, get_user_membership
 from services.ai_insights import get_circle_adherence_analytics
 from services.confidence import compute_remote_care_confidence
@@ -18,8 +18,11 @@ from services.gemini_service import generate_weekly_summary
 router = APIRouter(tags=["dashboard"])
 
 @router.get("/")
-def home():
-    return RedirectResponse(url="/dashboard", status_code=status.HTTP_302_FOUND)
+def home(request: Request, db: Session = Depends(get_db)):
+    user = get_current_user_optional(request, db)
+    if user:
+        return RedirectResponse(url="/dashboard", status_code=status.HTTP_302_FOUND)
+    return RedirectResponse(url="/login", status_code=status.HTTP_302_FOUND)
 
 @router.get("/dashboard", response_class=HTMLResponse)
 def dashboard(

@@ -176,13 +176,13 @@
                             <p class="text-xs font-bold text-slate-800">{{ user.name }}</p>
                             <p class="text-[10px] text-slate-400 capitalize">{{ user.role }}</p>
                         </div>
-                        <a href="/auth/logout" title="Logout" class="text-slate-400 hover:text-rose-600 p-1 text-sm ml-1">
+                        <a href="/logout" title="Logout" class="text-slate-400 hover:text-rose-600 p-1 text-sm ml-1">
                             <i class="fa-solid fa-arrow-right-from-bracket"></i>
                         </a>
                     </div>
                     {% else %}
-                    <a href="/auth/login" class="text-sm font-semibold text-brand-600 hover:text-brand-700 px-3 py-1.5">Log in</a>
-                    <a href="/auth/register" class="text-sm font-semibold bg-brand-600 text-white hover:bg-brand-700 px-4 py-1.5 rounded-xl shadow-sm transition">Get Started</a>
+                    <a href="/login" class="text-sm font-semibold text-brand-600 hover:text-brand-700 px-3 py-1.5">Log in</a>
+                    <a href="/register" class="text-sm font-semibold bg-brand-600 text-white hover:bg-brand-700 px-4 py-1.5 rounded-xl shadow-sm transition">Get Started</a>
                     {% endif %}
                 </div>
             </div>
@@ -251,7 +251,7 @@
                     <i class="fa-solid fa-sliders mr-2 text-amber-600"></i> Demo Simulator
                 </a>
                 {% endif %}
-                <a href="/auth/logout" class="block px-3 py-2.5 rounded-xl text-sm font-bold text-rose-600 hover:bg-rose-50">
+                <a href="/logout" class="block px-3 py-2.5 rounded-xl text-sm font-bold text-rose-600 hover:bg-rose-50">
                     <i class="fa-solid fa-arrow-right-from-bracket mr-2"></i> Log Out
                 </a>
             </div>

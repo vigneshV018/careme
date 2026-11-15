@@ -1,10 +1,16 @@
 from starlette.templating import Jinja2Templates
+from starlette.responses import HTMLResponse
 from config import DEMO_MODE, APP_NAME, APP_TAGLINE
 from services.csrf import get_or_create_csrf_token
 from services.timezone import format_kolkata, to_kolkata
 
 class UniversalTemplates(Jinja2Templates):
     def TemplateResponse(self, *args, **kwargs):
+        status_code = kwargs.pop("status_code", 200)
+        headers = kwargs.pop("headers", None)
+        media_type = kwargs.pop("media_type", None)
+        background = kwargs.pop("background", None)
+
         request = kwargs.pop("request", None)
         name = kwargs.pop("name", None)
         context = kwargs.pop("context", None)
@@ -29,12 +35,22 @@ class UniversalTemplates(Jinja2Templates):
 
         if request is None and isinstance(context, dict):
             request = context.get("request")
+        elif request is not None and "request" not in context:
+            context["request"] = request
 
         # Ensure demo_mode is always present in template context
         if "demo_mode" not in context:
             context["demo_mode"] = DEMO_MODE
 
-        return super().TemplateResponse(request, name, context=context, **kwargs)
+        tpl = self.get_template(name)
+        content = tpl.render(context)
+        return HTMLResponse(
+            content=content,
+            status_code=status_code,
+            headers=headers,
+            media_type=media_type,
+            background=background
+        )
 
 templates = UniversalTemplates(directory="templates")
 templates.env.globals["demo_mode"] = DEMO_MODE

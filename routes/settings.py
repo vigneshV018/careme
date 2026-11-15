@@ -90,7 +90,7 @@ def delete_account(
 
     # Log out user
     redirect = RedirectResponse(
-        url="/auth/login?success=Account+and+all+personal+data+have+been+permanently+deleted.",
+        url="/login?success=Account+and+all+personal+data+have+been+permanently+deleted.",
         status_code=status.HTTP_302_FOUND
     )
     logout_user(redirect)

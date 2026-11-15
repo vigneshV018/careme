@@ -116,7 +116,7 @@
                     {% endif %}
                 </div>
 
-                <form method="POST" action="/auth/pin" id="pin-form">
+                <form method="POST" action="/login/pin" id="pin-form">
                     <input type="hidden" name="csrf_token" value="{{ csrf_token(request) }}">
                     <div class="flex justify-center mb-6">
                         <input type="password" id="pin-input" name="pin" maxlength="4" autofocus
@@ -146,7 +146,7 @@
 
             <!-- TAB 3: Email & Password -->
             <div id="tab-content-password" class="hidden space-y-5">
-                <form method="POST" action="/auth/login" class="space-y-4">
+                <form method="POST" action="/login" class="space-y-4">
                     <input type="hidden" name="csrf_token" value="{{ csrf_token(request) }}">
                     <div>
                         <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Email Address</label>
@@ -160,7 +160,7 @@
                     <div>
                         <div class="flex items-center justify-between mb-1">
                             <label class="block text-xs font-bold text-slate-700 uppercase">Password</label>
-                            <a href="/auth/forgot-password" class="text-xs font-bold text-brand-600 hover:underline">Forgot password?</a>
+                            <a href="/forgot-password" class="text-xs font-bold text-brand-600 hover:underline">Forgot password?</a>
                         </div>
                         <input type="password" name="password" value="{% if demo_mode %}password123{% endif %}" required placeholder="••••••••"
                             class="w-full px-4 py-2.5 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-brand-500 text-sm">
@@ -177,7 +177,7 @@
         </div>
 
         <div class="bg-slate-50 border-t border-slate-200 px-6 py-4 text-center text-xs text-slate-600">
-            Need an account? <a href="/auth/register" class="font-bold text-brand-600 hover:underline">Register your Care Circle</a>
+            Need an account? <a href="/register" class="font-bold text-brand-600 hover:underline">Register your Care Circle</a>
         </div>
     </div>
 </div>
