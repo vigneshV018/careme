@@ -1,0 +1,375 @@
+{% extends "base.html" %}
+
+{% block title %}Ask CareMe - Schedule & Doctor Assistant{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto space-y-6">
+
+    <!-- Top Header -->
+    <div class="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 bg-white rounded-3xl border border-slate-200 p-6 sm:p-8 shadow-sm">
+        <div class="flex items-start gap-4">
+            <div class="w-14 h-14 rounded-2xl bg-gradient-to-tr from-teal-500 to-brand-600 text-white flex items-center justify-center text-2xl shadow-md shadow-teal-500/20 flex-shrink-0">
+                <i class="fa-solid fa-wand-magic-sparkles"></i>
+            </div>
+            <div>
+                <div class="flex items-center gap-2">
+                    <span class="bg-gradient-to-r from-teal-600 to-brand-700 text-white text-[10px] font-black uppercase px-2.5 py-0.5 rounded-full shadow-sm">
+                        Powered by Google Gemini 2.5 Flash
+                    </span>
+                    <span class="bg-slate-100 text-slate-700 text-[10px] font-bold px-2 py-0.5 rounded-full">
+                        {{ elder.name }}'s Care Circle
+                    </span>
+                </div>
+                <h1 class="text-2xl sm:text-3xl font-black text-slate-900 mt-1">
+                    Ask CareMe
+                </h1>
+                <p class="text-xs sm:text-sm text-slate-500 mt-0.5">
+                    Ask questions about {{ elder.name }}'s recorded schedule, review adherence trends, or prepare questions for doctor consultations.
+                </p>
+            </div>
+        </div>
+
+        <div class="flex items-center gap-3 w-full md:w-auto">
+            <a href="/assistant/report/pdf" class="flex-1 md:flex-initial bg-brand-600 hover:bg-brand-700 text-white font-extrabold px-4 py-2.5 rounded-xl text-xs shadow-md shadow-brand-600/20 flex items-center justify-center gap-2 transition">
+                <i class="fa-solid fa-file-pdf text-sm"></i>
+                <span>Download Doctor Report (PDF)</span>
+            </a>
+            <a href="/dashboard" class="px-4 py-2.5 rounded-xl border border-slate-200 text-slate-600 hover:text-slate-800 text-xs font-bold bg-white hover:bg-slate-50 transition">
+                <i class="fa-solid fa-house mr-1"></i> Dashboard
+            </a>
+        </div>
+    </div>
+
+    <!-- Main Grid: Chat Box (Left 2 cols), Context & Confidence (Right 1 col) -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+        <!-- Left 2 Cols: Chat Box -->
+        <div class="lg:col-span-2 bg-white rounded-3xl border border-slate-200 shadow-sm flex flex-col h-[700px] overflow-hidden">
+            
+            <!-- Chat Header -->
+            <div class="p-4 sm:p-5 border-b border-slate-100 bg-slate-50/70 flex items-center justify-between">
+                <div class="flex items-center gap-3">
+                    <div class="w-9 h-9 rounded-xl bg-teal-600 text-white flex items-center justify-center text-sm font-black shadow-sm">
+                        <i class="fa-solid fa-robot"></i>
+                    </div>
+                    <div>
+                        <div class="flex items-center gap-1.5">
+                            <h3 class="font-extrabold text-sm text-slate-800">CareMe Schedule Assistant</h3>
+                            <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                        </div>
+                        <p class="text-[11px] text-slate-500">Clinical schedule knowledge active • Grounded in recorded facts</p>
+                    </div>
+                </div>
+
+                <button type="button" onclick="clearChatHistory()" class="text-xs text-slate-400 hover:text-slate-600 font-bold px-2 py-1 rounded-lg hover:bg-slate-200/50 transition">
+                    <i class="fa-solid fa-rotate-right mr-1"></i> Reset Chat
+                </button>
+            </div>
+
+            <!-- Chat Messages Scroll Container -->
+            <div id="chat-messages" class="flex-1 p-4 sm:p-6 overflow-y-auto space-y-4">
+                
+                <!-- Initial AI Greeting -->
+                <div class="flex items-start gap-3">
+                    <div class="w-8 h-8 rounded-xl bg-teal-600 text-white flex items-center justify-center text-xs flex-shrink-0 shadow-sm mt-1">
+                        <i class="fa-solid fa-heart-pulse"></i>
+                    </div>
+                    <div class="bg-slate-100 text-slate-800 rounded-2xl rounded-tl-sm p-4 text-xs sm:text-sm max-w-xl shadow-xs space-y-2">
+                        <p class="font-semibold">
+                            Hello! I am your <strong>CareMe AI Assistant</strong>.
+                        </p>
+                        <p class="text-slate-600">
+                            I have full access to {{ elder.name }}'s recorded medications, this week's confirmation rate (<strong>{{ facts.adherence_rate }}</strong>), and her upcoming cardiology visit with <strong>{{ facts.next_appointment }}</strong>.
+                        </p>
+                        <p class="text-slate-600">
+                            Ask me anything about her routine, or click one of the suggested topics below:
+                        </p>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- Quick Suggestion Chips -->
+            <div class="px-4 py-2 border-t border-slate-100 bg-slate-50/50 flex items-center gap-2 overflow-x-auto text-xs">
+                <span class="text-[11px] font-bold text-slate-400 whitespace-nowrap">Suggested:</span>
+                <button type="button" onclick="sendQuickPrompt('How was my mother\'s week?')" class="bg-white hover:bg-teal-50 hover:text-teal-700 hover:border-teal-300 text-slate-700 font-bold px-3 py-1.5 rounded-full border border-slate-200 shadow-2xs whitespace-nowrap transition">
+                    💡 How was my mother's week?
+                </button>
+                <button type="button" onclick="sendQuickPrompt('What questions should we prepare for Dr. Ramesh at tomorrow\'s visit?')" class="bg-white hover:bg-teal-50 hover:text-teal-700 hover:border-teal-300 text-slate-700 font-bold px-3 py-1.5 rounded-full border border-slate-200 shadow-2xs whitespace-nowrap transition">
+                    🩺 What should we ask Dr. Ramesh?
+                </button>
+                <button type="button" onclick="sendQuickPrompt('Which medicines are on her schedule today and what are their instructions?')" class="bg-white hover:bg-teal-50 hover:text-teal-700 hover:border-teal-300 text-slate-700 font-bold px-3 py-1.5 rounded-full border border-slate-200 shadow-2xs whitespace-nowrap transition">
+                    💊 What is today's medicine schedule?
+                </button>
+            </div>
+
+            <!-- Input Area -->
+            <div class="p-4 border-t border-slate-200 bg-white space-y-2">
+                <form id="chat-form" onsubmit="handleChatSubmit(event)" class="flex items-center gap-2">
+                    <input type="text" id="chat-input" placeholder="Ask about schedule, missed doses, or doctor questions..." autocomplete="off"
+                        class="flex-1 bg-slate-50 border border-slate-300 focus:border-brand-500 focus:bg-white rounded-2xl px-4 py-3 text-xs sm:text-sm text-slate-800 placeholder-slate-400 outline-none transition">
+                    <button type="submit" id="chat-send-btn"
+                        class="bg-brand-600 hover:bg-brand-700 disabled:opacity-50 text-white font-extrabold px-5 py-3 rounded-2xl text-xs sm:text-sm shadow-md shadow-brand-600/20 flex items-center gap-2 transition flex-shrink-0">
+                        <span>Send</span>
+                        <i class="fa-solid fa-paper-plane"></i>
+                    </button>
+                </form>
+
+                <!-- Medical Disclaimer -->
+                <p class="text-[10px] text-slate-400 text-center">
+                    <i class="fa-solid fa-shield-heart text-teal-600 mr-1"></i>
+                    CareMe provides observational insights from recorded logs. Never changes dosages or diagnoses. Consult Dr. Ramesh for clinical guidance.
+                </p>
+            </div>
+
+        </div>
+
+        <!-- Right 1 Col: Confidence Score & Doctor Touchpoints -->
+        <div class="space-y-6">
+
+            <!-- Remote Care Confidence Card -->
+            <div class="bg-white rounded-3xl border border-slate-200 p-6 shadow-sm space-y-4">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center gap-2.5">
+                        <span class="w-8 h-8 rounded-xl bg-teal-100 text-teal-700 flex items-center justify-center text-sm font-black">
+                            <i class="fa-solid fa-shield-halved"></i>
+                        </span>
+                        <div>
+                            <h3 class="font-extrabold text-sm text-slate-900">Remote Care Confidence</h3>
+                            <p class="text-[11px] text-slate-500">Pure Python algorithmic rating</p>
+                        </div>
+                    </div>
+                    <span class="{% if facts.confidence_score >= 85 %}bg-emerald-100 text-emerald-800 border-emerald-200{% elif facts.confidence_score >= 65 %}bg-amber-100 text-amber-800 border-amber-200{% else %}bg-rose-100 text-rose-800 border-rose-200{% endif %} border text-[10px] font-black uppercase px-2 py-0.5 rounded-full">
+                        {{ facts.confidence_label }}
+                    </span>
+                </div>
+
+                <div class="flex items-center gap-4 bg-slate-50 p-4 rounded-2xl border border-slate-100">
+                    <div class="w-16 h-16 rounded-2xl bg-white border border-slate-200 flex flex-col items-center justify-center shadow-xs flex-shrink-0">
+                        <span class="text-xl font-black {% if facts.confidence_score >= 85 %}text-teal-600{% elif facts.confidence_score >= 65 %}text-amber-600{% else %}text-rose-600{% endif %}">
+                            {{ facts.confidence_score }}
+                        </span>
+                        <span class="text-[9px] font-extrabold text-slate-400 uppercase tracking-wider">/ 100</span>
+                    </div>
+                    <p class="text-xs text-slate-600 font-medium leading-relaxed">
+                        {{ facts.raw_confidence.tone_message }}
+                    </p>
+                </div>
+
+                <!-- Reasons List -->
+                <div class="space-y-2 pt-1">
+                    <p class="text-[11px] font-bold uppercase tracking-wider text-slate-400">Key Evaluation Factors</p>
+                    <ul class="space-y-1.5 text-xs text-slate-600 font-medium">
+                        {% for r in facts.confidence_reasons %}
+                        <li class="flex items-start gap-2">
+                            <i class="fa-solid fa-check text-emerald-600 mt-0.5 text-[11px] flex-shrink-0"></i>
+                            <span>{{ r }}</span>
+                        </li>
+                        {% endfor %}
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Doctor Consultation Card -->
+            <div class="bg-gradient-to-br from-slate-900 to-indigo-950 text-white rounded-3xl p-6 shadow-md space-y-4">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-xl bg-indigo-500/20 border border-indigo-400/30 flex items-center justify-center text-lg text-indigo-300">
+                        <i class="fa-solid fa-user-doctor"></i>
+                    </div>
+                    <div>
+                        <span class="bg-indigo-500/30 text-indigo-200 text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-full">
+                            Next Consultation
+                        </span>
+                        <h4 class="font-black text-sm mt-0.5">Dr. Ramesh, MD</h4>
+                    </div>
+                </div>
+
+                <div class="text-xs text-indigo-200 space-y-1 border-t border-indigo-800/60 pt-3">
+                    <p><i class="fa-solid fa-hospital mr-1.5 text-indigo-400"></i> KG Hospital, Coimbatore</p>
+                    <p><i class="fa-regular fa-clock mr-1.5 text-indigo-400"></i> {{ facts.next_appointment }}</p>
+                </div>
+
+                <a href="/assistant/report/pdf" class="w-full bg-brand-500 hover:bg-brand-600 text-white text-xs font-black py-2.5 px-4 rounded-xl shadow-md flex items-center justify-center gap-2 transition">
+                    <i class="fa-solid fa-download"></i>
+                    <span>Download Doctor Report (PDF)</span>
+                </a>
+            </div>
+
+            <!-- Quick Active Prescriptions -->
+            <div class="bg-white rounded-3xl border border-slate-200 p-6 shadow-sm space-y-3">
+                <h4 class="font-extrabold text-xs text-slate-400 uppercase tracking-wider">Active Prescriptions</h4>
+                <div class="space-y-2">
+                    {% for m in facts.raw_medicines %}
+                    <div class="flex items-center justify-between p-2.5 rounded-xl bg-slate-50 border border-slate-100 text-xs">
+                        <div>
+                            <p class="font-bold text-slate-800">{{ m.name }}</p>
+                            <p class="text-[11px] text-slate-500">{{ m.dosage }} • {{ m.instructions }}</p>
+                        </div>
+                        <span class="bg-teal-50 text-teal-700 text-[10px] font-bold px-2 py-0.5 rounded">
+                            {{ m.times }}
+                        </span>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+<script>
+async function handleChatSubmit(e) {
+    e.preventDefault();
+    const input = document.getElementById('chat-input');
+    const question = input.value.trim();
+    if (!question) return;
+
+    input.value = '';
+    appendUserMessage(question);
+
+    const sendBtn = document.getElementById('chat-send-btn');
+    sendBtn.disabled = true;
+
+    // Typing indicator
+    const typingId = appendTypingIndicator();
+
+    try {
+        const response = await fetch('/assistant/chat', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ question: question })
+        });
+
+        const data = await response.json();
+        removeTypingIndicator(typingId);
+
+        if (response.ok && data.reply) {
+            appendAssistantMessage(data.reply);
+        } else {
+            appendAssistantMessage(data.error || 'I had trouble checking the schedule records. Please try again.');
+        }
+    } catch (err) {
+        removeTypingIndicator(typingId);
+        appendAssistantMessage('Unable to reach CareMe assistant. Please check connection and retry.');
+    } finally {
+        sendBtn.disabled = false;
+        input.focus();
+    }
+}
+
+function sendQuickPrompt(promptText) {
+    document.getElementById('chat-input').value = promptText;
+    document.getElementById('chat-form').dispatchEvent(new Event('submit'));
+}
+
+function appendUserMessage(text) {
+    const container = document.getElementById('chat-messages');
+    const div = document.createElement('div');
+    div.className = 'flex items-start justify-end gap-3';
+    div.innerHTML = `
+        <div class="bg-brand-600 text-white rounded-2xl rounded-tr-sm p-3.5 text-xs sm:text-sm max-w-lg shadow-sm">
+            <p>${escapeHtml(text)}</p>
+        </div>
+        <div class="w-8 h-8 rounded-xl bg-slate-200 text-slate-700 flex items-center justify-center text-xs flex-shrink-0 mt-1 font-bold">
+            <i class="fa-solid fa-user"></i>
+        </div>
+    `;
+    container.appendChild(div);
+    container.scrollTop = container.scrollHeight;
+}
+
+function appendAssistantMessage(text) {
+    const container = document.getElementById('chat-messages');
+    const div = document.createElement('div');
+    div.className = 'flex items-start gap-3';
+
+    // Format markdown-like bold and bullet lines nicely
+    const formattedHtml = formatChatMarkdown(text);
+
+    div.innerHTML = `
+        <div class="w-8 h-8 rounded-xl bg-teal-600 text-white flex items-center justify-center text-xs flex-shrink-0 shadow-sm mt-1">
+            <i class="fa-solid fa-heart-pulse"></i>
+        </div>
+        <div class="bg-slate-100 text-slate-800 rounded-2xl rounded-tl-sm p-4 text-xs sm:text-sm max-w-xl shadow-xs space-y-2 leading-relaxed">
+            ${formattedHtml}
+        </div>
+    `;
+    container.appendChild(div);
+    container.scrollTop = container.scrollHeight;
+}
+
+function appendTypingIndicator() {
+    const container = document.getElementById('chat-messages');
+    const id = 'typing-' + Date.now();
+    const div = document.createElement('div');
+    div.id = id;
+    div.className = 'flex items-start gap-3';
+    div.innerHTML = `
+        <div class="w-8 h-8 rounded-xl bg-teal-600 text-white flex items-center justify-center text-xs flex-shrink-0 shadow-sm mt-1">
+            <i class="fa-solid fa-brain animate-pulse"></i>
+        </div>
+        <div class="bg-slate-100 rounded-2xl rounded-tl-sm px-4 py-3 text-xs text-slate-500 flex items-center gap-1.5 shadow-xs">
+            <span class="w-2 h-2 rounded-full bg-teal-600 animate-bounce"></span>
+            <span class="w-2 h-2 rounded-full bg-teal-600 animate-bounce [animation-delay:0.2s]"></span>
+            <span class="w-2 h-2 rounded-full bg-teal-600 animate-bounce [animation-delay:0.4s]"></span>
+            <span class="ml-2 font-medium">Analyzing recorded schedule...</span>
+        </div>
+    `;
+    container.appendChild(div);
+    container.scrollTop = container.scrollHeight;
+    return id;
+}
+
+function removeTypingIndicator(id) {
+    const el = document.getElementById(id);
+    if (el) el.remove();
+}
+
+function clearChatHistory() {
+    const container = document.getElementById('chat-messages');
+    container.innerHTML = `
+        <div class="flex items-start gap-3">
+            <div class="w-8 h-8 rounded-xl bg-teal-600 text-white flex items-center justify-center text-xs flex-shrink-0 shadow-sm mt-1">
+                <i class="fa-solid fa-heart-pulse"></i>
+            </div>
+            <div class="bg-slate-100 text-slate-800 rounded-2xl rounded-tl-sm p-4 text-xs sm:text-sm max-w-xl shadow-xs space-y-2">
+                <p class="font-semibold">Chat reset. How can I help you regarding {{ elder.name }}'s schedule?</p>
+            </div>
+        </div>
+    `;
+}
+
+function formatChatMarkdown(text) {
+    if (!text) return '';
+    let html = escapeHtml(text);
+    // Bold
+    html = html.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+    // Italics
+    html = html.replace(/\*(.*?)\*/g, '<em>$1</em>');
+    // Bullet lines
+    html = html.replace(/^• (.*?)$/gm, '<li class="ml-3 list-disc">$1</li>');
+    // Numbered lines
+    html = html.replace(/^(\d+\.) (.*?)$/gm, '<li class="ml-3 list-decimal"><strong>$1</strong> $2</li>');
+    // Newlines
+    html = html.replace(/\n\n/g, '<br/><br/>').replace(/\n/g, '<br/>');
+    return html;
+}
+
+function escapeHtml(str) {
+    return str.replace(/[&<>'"]/g, 
+        tag => ({
+            '&': '&amp;',
+            '<': '&lt;',
+            '>': '&gt;',
+            "'": '&#39;',
+            '"': '&quot;'
+        }[tag] || tag)
+    );
+}
+</script>
+{% endblock %}
+

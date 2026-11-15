@@ -1,0 +1,159 @@
+{% extends "base.html" %}
+
+{% block title %}Appointments - CareMe{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto space-y-6">
+
+    <!-- Top Header -->
+    <div class="bg-white rounded-3xl border border-slate-200 p-6 sm:p-8 shadow-sm flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+        <div>
+            <span class="bg-indigo-100 text-indigo-800 text-[10px] font-black uppercase px-2.5 py-0.5 rounded-full">
+                Medical Consultations & Visits
+            </span>
+            <h1 class="text-2xl sm:text-3xl font-black text-slate-900 mt-1">Doctor Appointments & Follow-ups</h1>
+            <p class="text-xs sm:text-sm text-slate-500 mt-0.5">
+                Proactive scheduling, 24h & 2h reminders, and family accompaniment for <strong>{{ elder.name if elder else 'Elder' }}</strong>
+            </p>
+        </div>
+
+        {% if permissions.can_edit_appointments %}
+        <a href="/appointments/add" class="bg-brand-600 hover:bg-brand-700 text-white font-extrabold text-sm px-5 py-3 rounded-2xl shadow-sm flex items-center gap-2 transition">
+            <i class="fa-solid fa-plus"></i>
+            <span>Schedule New Appointment</span>
+        </a>
+        {% endif %}
+    </div>
+
+    <!-- Upcoming Consultations List -->
+    <div>
+        <h2 class="text-lg font-black text-slate-900 mb-4 flex items-center gap-2">
+            <i class="fa-solid fa-calendar-check text-brand-600"></i>
+            <span>Upcoming Consultations</span>
+        </h2>
+
+        {% if upcoming %}
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {% for appt in upcoming %}
+            <div class="bg-white rounded-3xl border border-slate-200 p-6 shadow-sm flex flex-col justify-between relative overflow-hidden">
+                <div class="absolute top-0 right-0 bg-indigo-600 text-white text-[10px] font-black uppercase px-4 py-1 rounded-bl-2xl">
+                    Confirmed
+                </div>
+
+                <div>
+                    <div class="flex items-start gap-4">
+                        <div class="w-14 h-14 rounded-2xl bg-indigo-50 border border-indigo-200 flex items-center justify-center text-2xl text-indigo-600 flex-shrink-0">
+                            <i class="fa-solid fa-user-doctor"></i>
+                        </div>
+                        <div>
+                            <span class="text-xs font-bold text-indigo-700 bg-indigo-50 px-2.5 py-0.5 rounded-full">
+                                {{ appt.specialty }}
+                            </span>
+                            <h3 class="text-xl font-black text-slate-900 mt-1">{{ appt.doctor }}</h3>
+                            <p class="text-xs text-slate-600 font-bold mt-0.5">
+                                <i class="fa-solid fa-hospital mr-1 text-slate-400"></i> {{ appt.hospital }}
+                            </p>
+                        </div>
+                    </div>
+
+                    <div class="mt-4 p-4 rounded-2xl bg-slate-50 border border-slate-100 space-y-2 text-xs">
+                        <div class="flex items-center gap-2 text-slate-800 font-bold">
+                            <i class="fa-regular fa-clock text-brand-600 text-sm"></i>
+                            <span>{{ appt.datetime.strftime('%A, %B %d, %Y at %I:%M %p') }}</span>
+                        </div>
+                        <div class="flex items-start gap-2 text-slate-600">
+                            <i class="fa-solid fa-location-dot text-rose-500 mt-0.5"></i>
+                            <span>{{ appt.address or 'Hospital Clinic address' }}</span>
+                        </div>
+                        <div class="flex items-center gap-2 text-slate-600">
+                            <i class="fa-solid fa-phone text-emerald-600"></i>
+                            <a href="tel:{{ appt.phone }}" class="hover:underline font-semibold">{{ appt.phone or 'Contact reception' }}</a>
+                        </div>
+                    </div>
+
+                    {% if appt.notes %}
+                    <div class="mt-3 p-3 bg-amber-50/70 border border-amber-200/80 rounded-xl text-xs text-amber-900">
+                        <span class="font-bold">Instructions & Notes:</span> {{ appt.notes }}
+                    </div>
+                    {% endif %}
+
+                    <div class="mt-3 flex items-center gap-3 text-[11px] text-slate-400">
+                        <span class="{% if appt.reminded_24h %}text-emerald-600 font-bold{% endif %}">
+                            <i class="fa-solid fa-circle-check mr-0.5"></i> 24h Reminder Active
+                        </span>
+                        <span>•</span>
+                        <span class="{% if appt.reminded_2h %}text-emerald-600 font-bold{% endif %}">
+                            <i class="fa-solid fa-bell mr-0.5"></i> 2h Reminder Armed
+                        </span>
+                    </div>
+                </div>
+
+                <div class="mt-6 pt-4 border-t border-slate-100 flex items-center justify-between gap-3">
+                    <form method="POST" action="/appointments/{{ appt.id }}/accompany">
+                        <button type="submit" class="bg-indigo-50 hover:bg-indigo-100 text-indigo-800 font-bold px-3.5 py-2 rounded-xl text-xs flex items-center gap-1.5 transition">
+                            <i class="fa-solid fa-user-plus text-indigo-600"></i>
+                            <span>Accompany Lakshmi</span>
+                        </button>
+                    </form>
+
+                    {% if permissions.can_edit_appointments %}
+                    <div class="flex items-center gap-3">
+                        <a href="/appointments/edit/{{ appt.id }}" class="text-xs font-bold text-slate-600 hover:text-slate-900">
+                            <i class="fa-solid fa-pen-to-square"></i> Edit
+                        </a>
+                        <form method="POST" action="/appointments/delete/{{ appt.id }}" onsubmit="return confirm('Cancel this appointment?');">
+                            <button type="submit" class="text-xs font-bold text-rose-500 hover:text-rose-700">
+                                <i class="fa-solid fa-trash"></i>
+                            </button>
+                        </form>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="bg-white rounded-3xl border border-slate-200 p-8 text-center text-slate-400">
+            <i class="fa-solid fa-calendar-xmark text-4xl mb-2 text-slate-300"></i>
+            <p class="font-bold text-slate-600">No upcoming appointments scheduled.</p>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Past Consultations -->
+    {% if past %}
+    <div class="pt-6">
+        <h2 class="text-base font-black text-slate-900 mb-3 flex items-center gap-2">
+            <i class="fa-solid fa-clock-rotate-left text-slate-400"></i>
+            <span>Past Completed Consultations</span>
+        </h2>
+        <div class="bg-white rounded-3xl border border-slate-200 p-6 shadow-sm overflow-x-auto">
+            <table class="w-full text-left text-xs">
+                <thead>
+                    <tr class="border-b border-slate-200 text-slate-400 uppercase font-black">
+                        <th class="py-2.5 px-3">Doctor</th>
+                        <th class="py-2.5 px-3">Specialty</th>
+                        <th class="py-2.5 px-3">Hospital</th>
+                        <th class="py-2.5 px-3">Date</th>
+                        <th class="py-2.5 px-3">Notes</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100">
+                    {% for p in past %}
+                    <tr>
+                        <td class="py-3 px-3 font-bold text-slate-800">{{ p.doctor }}</td>
+                        <td class="py-3 px-3 text-slate-600">{{ p.specialty }}</td>
+                        <td class="py-3 px-3 text-slate-600">{{ p.hospital }}</td>
+                        <td class="py-3 px-3 text-slate-500">{{ p.datetime.strftime('%b %d, %Y') }}</td>
+                        <td class="py-3 px-3 text-slate-500 truncate max-w-xs">{{ p.notes or '—' }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% endif %}
+
+</div>
+{% endblock %}
+

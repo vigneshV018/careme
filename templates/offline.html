@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+
+{% block title %}Offline - CareMe{% endblock %}
+
+{% block content %}
+<div class="max-w-md mx-auto py-16 px-4 text-center space-y-6">
+    <div class="w-20 h-20 rounded-3xl bg-teal-50 border-2 border-teal-200 text-teal-600 flex items-center justify-center text-3xl mx-auto shadow-sm">
+        <i class="fa-solid fa-wifi-slash"></i>
+    </div>
+
+    <div class="space-y-2">
+        <span class="bg-amber-100 text-amber-800 text-[10px] font-black uppercase tracking-wider px-2.5 py-0.5 rounded-full">
+            No Internet Connection
+        </span>
+        <h1 class="text-2xl font-black text-slate-900 tracking-tight">You're Currently Offline</h1>
+        <p class="text-xs sm:text-sm text-slate-500 max-w-sm mx-auto">
+            CareMe could not connect to the cloud network. Please check your mobile data or Wi-Fi.
+        </p>
+    </div>
+
+    <div class="p-4 bg-white border border-slate-200 rounded-2xl shadow-sm text-xs text-slate-600 space-y-2">
+        <p class="font-bold text-slate-800">
+            <i class="fa-solid fa-phone text-rose-500 mr-1"></i> Immediate Medical Emergency?
+        </p>
+        <p>
+            Dial emergency services directly on your phone dialer:
+        </p>
+        <a href="tel:112" class="inline-flex items-center gap-2 bg-rose-600 hover:bg-rose-700 text-white font-extrabold px-5 py-2.5 rounded-xl shadow-md transition text-xs mt-1">
+            <i class="fa-solid fa-phone"></i>
+            <span>Call 112 (Emergency)</span>
+        </a>
+    </div>
+
+    <div>
+        <button type="button" onclick="window.location.reload()"
+            class="px-6 py-3 rounded-xl bg-brand-600 hover:bg-brand-700 active:scale-95 text-white font-bold text-xs shadow-md transition inline-flex items-center gap-2">
+            <i class="fa-solid fa-arrow-rotate-right"></i>
+            <span>Retry Connection</span>
+        </button>
+    </div>
+</div>
+{% endblock %}
+

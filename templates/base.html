@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <meta name="theme-color" content="#0F2A4A">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="csrf-token" content="{{ csrf_token(request) }}">
+    
+    <title>{% block title %}CareMe - Elderly Healthcare & Remote Family Care{% endblock %}</title>
+
+    <!-- PWA Manifest & Icons -->
+    <link rel="manifest" href="/static/manifest.json">
+    <link rel="icon" type="image/png" sizes="192x192" href="/static/icons/icon-192.png">
+    <link rel="apple-touch-icon" href="/static/icons/icon-192.png">
+    
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            50: '#f0fdfa',
+                            100: '#ccfbf1',
+                            500: '#14b8a6',
+                            600: '#0d9488',
+                            700: '#0f766e',
+                            800: '#115e59',
+                            900: '#134e4a'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+
+    <!-- Font Awesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="/static/css/custom.css">
+    {% block extra_head %}{% endblock %}
+</head>
+<body class="bg-slate-50 text-slate-800 min-h-screen flex flex-col antialiased {% if user and user.role == 'elder' %}elder-mobile-space{% endif %}">
+
+    <!-- PWA Add to Home Screen Hint (Phones) -->
+    <div id="pwa-install-banner" class="hidden bg-slate-950 text-white px-4 py-2.5 border-b border-slate-800 flex items-center justify-between text-xs z-50">
+        <div class="flex items-center gap-2">
+            <img src="/static/icons/icon-192.png" class="w-6 h-6 rounded-md">
+            <span>Install <strong>CareMe</strong> on your phone for quick home screen access</span>
+        </div>
+        <div class="flex items-center gap-2">
+            <button onclick="triggerPwaInstall()" class="bg-teal-500 hover:bg-teal-600 text-white font-extrabold px-3 py-1 rounded-lg text-[11px] shadow-sm">
+                Install
+            </button>
+            <button onclick="dismissPwaInstall()" class="text-slate-400 hover:text-white text-sm p-1">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+        </div>
+    </div>
+
+    <!-- Active Emergency SOS Alert Banner -->
+    {% if active_sos %}
+    <div class="bg-rose-600 text-white px-4 py-3 text-center font-bold text-sm flex items-center justify-center gap-3 animate-pulse shadow-md z-50">
+        <i class="fa-solid fa-triangle-exclamation text-xl"></i>
+        <span>EMERGENCY ALERT TRIGGERED for {{ circle.elder.name if circle else 'Elder' }}!</span>
+        <a href="/alerts" class="bg-white text-rose-700 px-3 py-1 rounded-lg text-xs font-black uppercase hover:bg-rose-50 transition shadow">
+            View SOS Location & Details
+        </a>
+    </div>
+    {% endif %}
+
+    <!-- Top Navigation Bar -->
+    <header class="bg-white border-b border-slate-200 sticky top-0 z-40 shadow-sm">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex items-center justify-between h-16">
+                
+                <!-- Logo & Brand -->
+                <div class="flex items-center gap-3">
+                    {% if user %}
+                    <!-- Mobile Hamburger Button -->
+                    <button type="button" onclick="toggleMobileMenu()" class="sm:hidden text-slate-600 hover:text-slate-900 p-2 rounded-xl border border-slate-200 hover:bg-slate-50 transition" aria-label="Toggle Navigation Menu">
+                        <i class="fa-solid fa-bars text-lg"></i>
+                    </button>
+                    {% endif %}
+
+                    <a href="/dashboard" class="flex items-center gap-2.5 group">
+                        <div class="w-9 h-9 sm:w-10 sm:h-10 rounded-2xl bg-gradient-to-tr from-brand-600 to-teal-400 flex items-center justify-center text-white shadow-md shadow-brand-500/20 group-hover:scale-105 transition">
+                            <i class="fa-solid fa-heart-pulse text-lg sm:text-xl"></i>
+                        </div>
+                        <div>
+                            <div class="flex items-center gap-1.5">
+                                <span class="font-extrabold text-xl sm:text-2xl tracking-tight text-slate-900">CareMe</span>
+                            </div>
+                            <p class="hidden sm:block text-[11px] text-slate-500 font-medium">Care from anywhere. Connected by CareMe.</p>
+                        </div>
+                    </a>
+                </div>
+
+                <!-- Center / Mode Indicator (Desktop) -->
+                {% if user %}
+                <div class="hidden lg:flex items-center gap-2 bg-slate-100 px-3 py-1.5 rounded-full border border-slate-200">
+                    <span class="w-2.5 h-2.5 rounded-full {% if user.role == 'elder' %}bg-amber-500{% elif user.role == 'family' %}bg-brand-500{% else %}bg-indigo-500{% endif %}"></span>
+                    <span class="text-xs font-semibold uppercase tracking-wider text-slate-600">
+                        {{ user.role }} Mode
+                    </span>
+                    <span class="text-slate-300">|</span>
+                    <span class="text-xs font-medium text-slate-700">
+                        Care Circle: <strong class="text-brand-700">{{ circle.elder.name if circle else user.name }}'s Circle</strong>
+                    </span>
+                </div>
+                {% endif %}
+
+                <!-- Right Side Actions: Persona Switcher, Notifications, User Menu -->
+                <div class="flex items-center gap-2.5 sm:gap-3">
+                    {% if user %}
+                    <!-- Quick Persona Switcher (Only visible when DEMO_MODE=true) -->
+                    {% if demo_mode and demo_users %}
+                    <div class="relative group">
+                        <button type="button" class="flex items-center gap-1.5 bg-brand-50 border border-brand-200 text-brand-800 hover:bg-brand-100 px-3 py-1.5 rounded-xl text-xs font-bold transition shadow-sm">
+                            <i class="fa-solid fa-users-viewfinder text-brand-600"></i>
+                            <span class="hidden sm:inline">Switch Persona</span>
+                            <i class="fa-solid fa-chevron-down text-[10px] ml-0.5 opacity-70"></i>
+                        </button>
+                        <!-- Dropdown menu -->
+                        <div class="hidden group-hover:block absolute right-0 mt-1 w-64 bg-white rounded-2xl shadow-xl border border-slate-100 py-2 z-50 animate-fadeIn">
+                            <div class="px-3 py-2 border-b border-slate-100">
+                                <p class="text-[11px] font-bold uppercase text-slate-400">1-Click Demo Switcher</p>
+                                <p class="text-xs text-slate-500">Test platform through any care persona</p>
+                            </div>
+                            {% for du in demo_users %}
+                            <a href="/auth/switch/{{ du.id }}" class="flex items-center gap-3 px-3 py-2.5 hover:bg-slate-50 transition {% if du.id == user.id %}bg-brand-50/70 border-l-4 border-brand-600{% endif %}">
+                                <div class="w-8 h-8 rounded-full overflow-hidden bg-slate-200 flex-shrink-0">
+                                    <img src="{{ du.photo_url or 'https://api.dicebear.com/7.x/personas/svg?seed=' + du.name }}" alt="{{ du.name }}" class="w-full h-full object-cover">
+                                </div>
+                                <div class="flex-1 min-w-0">
+                                    <div class="flex items-center justify-between">
+                                        <p class="text-xs font-bold text-slate-800 truncate">{{ du.name }}</p>
+                                        <span class="text-[10px] font-semibold px-1.5 py-0.5 rounded capitalize {% if du.role == 'elder' %}bg-amber-100 text-amber-800{% elif du.role == 'family' %}bg-brand-100 text-brand-800{% else %}bg-indigo-100 text-indigo-800{% endif %}">
+                                            {{ du.role }}
+                                        </span>
+                                    </div>
+                                    <p class="text-[11px] text-slate-500">{{ du.city }} {% if du.role == 'elder' %}• PIN 1234{% endif %}</p>
+                                </div>
+                            </a>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    <!-- Notification Bell -->
+                    <a href="/notifications" class="relative p-2 text-slate-500 hover:text-slate-800 transition" aria-label="Notifications">
+                        <i class="fa-regular fa-bell text-lg"></i>
+                        {% if unread_notifs and unread_notifs > 0 %}
+                        <span class="absolute top-1 right-1 w-4 h-4 bg-rose-500 text-white rounded-full text-[10px] font-bold flex items-center justify-center">
+                            {{ unread_notifs }}
+                        </span>
+                        {% endif %}
+                    </a>
+
+                    <!-- Emergency SOS Trigger Button -->
+                    <button onclick="triggerEmergencySOS(this)" class="bg-rose-500 hover:bg-rose-600 active:scale-95 text-white font-extrabold px-3 py-1.5 rounded-xl text-xs flex items-center gap-1.5 shadow-sm transition">
+                        <i class="fa-solid fa-triangle-exclamation"></i>
+                        <span>SOS</span>
+                    </button>
+
+                    <!-- User Profile & Settings -->
+                    <div class="flex items-center gap-2 pl-2 border-l border-slate-200">
+                        <a href="/settings" title="Settings" class="w-8 h-8 rounded-full overflow-hidden border border-brand-500 hover:opacity-90 transition">
+                            <img src="{{ user.photo_url or 'https://api.dicebear.com/7.x/personas/svg?seed=' + user.name }}" alt="{{ user.name }}" class="w-full h-full object-cover">
+                        </a>
+                        <div class="hidden md:block text-left">
+                            <p class="text-xs font-bold text-slate-800">{{ user.name }}</p>
+                            <p class="text-[10px] text-slate-400 capitalize">{{ user.role }}</p>
+                        </div>
+                        <a href="/auth/logout" title="Logout" class="text-slate-400 hover:text-rose-600 p-1 text-sm ml-1">
+                            <i class="fa-solid fa-arrow-right-from-bracket"></i>
+                        </a>
+                    </div>
+                    {% else %}
+                    <a href="/auth/login" class="text-sm font-semibold text-brand-600 hover:text-brand-700 px-3 py-1.5">Log in</a>
+                    <a href="/auth/register" class="text-sm font-semibold bg-brand-600 text-white hover:bg-brand-700 px-4 py-1.5 rounded-xl shadow-sm transition">Get Started</a>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Sub Nav Links (Desktop & Tablet) -->
+            {% if user %}
+            <nav class="hidden sm:flex items-center space-x-2 sm:space-x-3 overflow-x-auto py-2.5 border-t border-slate-100 text-xs sm:text-sm font-semibold">
+                <a href="/dashboard" class="px-3 py-1.5 rounded-xl transition {% if request.url.path == '/dashboard' %}bg-brand-600 text-white shadow-sm{% else %}text-slate-600 hover:text-slate-900 hover:bg-slate-100{% endif %}">
+                    <i class="fa-solid fa-house mr-1"></i> Dashboard
+                </a>
+                <a href="/medicines" class="px-3 py-1.5 rounded-xl transition {% if '/medicines' in request.url.path %}bg-brand-600 text-white shadow-sm{% else %}text-slate-600 hover:text-slate-900 hover:bg-slate-100{% endif %}">
+                    <i class="fa-solid fa-pills mr-1"></i> Medicines
+                </a>
+                <a href="/appointments" class="px-3 py-1.5 rounded-xl transition {% if '/appointments' in request.url.path %}bg-brand-600 text-white shadow-sm{% else %}text-slate-600 hover:text-slate-900 hover:bg-slate-100{% endif %}">
+                    <i class="fa-solid fa-calendar-check mr-1"></i> Appointments
+                </a>
+                <a href="/circle" class="px-3 py-1.5 rounded-xl transition {% if request.url.path == '/circle' %}bg-brand-600 text-white shadow-sm{% else %}text-slate-600 hover:text-slate-900 hover:bg-slate-100{% endif %}">
+                    <i class="fa-solid fa-people-roof mr-1"></i> Care Circle
+                </a>
+                <a href="/circle/activity" class="px-3 py-1.5 rounded-xl transition {% if request.url.path == '/circle/activity' %}bg-brand-600 text-white shadow-sm{% else %}text-slate-600 hover:text-slate-900 hover:bg-slate-100{% endif %}">
+                    <i class="fa-solid fa-clock-rotate-left mr-1"></i> Activity Log
+                </a>
+                <a href="/assistant" class="px-3 py-1.5 rounded-xl transition {% if '/assistant' in request.url.path %}bg-teal-600 text-white shadow-sm{% else %}text-teal-800 bg-teal-50 hover:bg-teal-100 border border-teal-200{% endif %}">
+                    <i class="fa-solid fa-wand-magic-sparkles mr-1 text-teal-600"></i> Ask CareMe
+                </a>
+                <a href="/settings" class="px-3 py-1.5 rounded-xl transition {% if '/settings' in request.url.path %}bg-brand-600 text-white shadow-sm{% else %}text-slate-600 hover:text-slate-900 hover:bg-slate-100{% endif %}">
+                    <i class="fa-solid fa-gear mr-1"></i> Settings
+                </a>
+                {% if demo_mode %}
+                <a href="/demo" class="px-3 py-1.5 rounded-xl transition {% if '/demo' in request.url.path %}bg-amber-600 text-white shadow-sm{% else %}text-amber-800 bg-amber-50 hover:bg-amber-100 border border-amber-200{% endif %}">
+                    <i class="fa-solid fa-sliders mr-1"></i> Demo Simulator
+                </a>
+                {% endif %}
+            </nav>
+            {% endif %}
+
+            <!-- Mobile Drawer Menu (Phones) -->
+            {% if user %}
+            <div id="mobile-menu-drawer" class="sm:hidden hidden py-3 border-t border-slate-200 space-y-1">
+                <a href="/dashboard" class="block px-3 py-2.5 rounded-xl text-sm font-bold {% if request.url.path == '/dashboard' %}bg-brand-600 text-white{% else %}text-slate-700 hover:bg-slate-100{% endif %}">
+                    <i class="fa-solid fa-house mr-2 text-slate-400"></i> Dashboard
+                </a>
+                <a href="/medicines" class="block px-3 py-2.5 rounded-xl text-sm font-bold {% if '/medicines' in request.url.path %}bg-brand-600 text-white{% else %}text-slate-700 hover:bg-slate-100{% endif %}">
+                    <i class="fa-solid fa-pills mr-2 text-slate-400"></i> Medicines Schedule
+                </a>
+                <a href="/appointments" class="block px-3 py-2.5 rounded-xl text-sm font-bold {% if '/appointments' in request.url.path %}bg-brand-600 text-white{% else %}text-slate-700 hover:bg-slate-100{% endif %}">
+                    <i class="fa-solid fa-calendar-check mr-2 text-slate-400"></i> Doctor Appointments
+                </a>
+                <a href="/circle" class="block px-3 py-2.5 rounded-xl text-sm font-bold {% if request.url.path == '/circle' %}bg-brand-600 text-white{% else %}text-slate-700 hover:bg-slate-100{% endif %}">
+                    <i class="fa-solid fa-people-roof mr-2 text-slate-400"></i> Care Circle Members
+                </a>
+                <a href="/circle/activity" class="block px-3 py-2.5 rounded-xl text-sm font-bold {% if request.url.path == '/circle/activity' %}bg-brand-600 text-white{% else %}text-slate-700 hover:bg-slate-100{% endif %}">
+                    <i class="fa-solid fa-clock-rotate-left mr-2 text-slate-400"></i> Activity Log
+                </a>
+                <a href="/assistant" class="block px-3 py-2.5 rounded-xl text-sm font-bold {% if '/assistant' in request.url.path %}bg-teal-600 text-white{% else %}text-teal-800 bg-teal-50{% endif %}">
+                    <i class="fa-solid fa-wand-magic-sparkles mr-2 text-teal-600"></i> Ask CareMe Assistant
+                </a>
+                <a href="/settings" class="block px-3 py-2.5 rounded-xl text-sm font-bold {% if '/settings' in request.url.path %}bg-brand-600 text-white{% else %}text-slate-700 hover:bg-slate-100{% endif %}">
+                    <i class="fa-solid fa-gear mr-2 text-slate-400"></i> Account & Settings
+                </a>
+                <a href="/privacy" class="block px-3 py-2.5 rounded-xl text-sm font-bold text-slate-700 hover:bg-slate-100">
+                    <i class="fa-solid fa-shield-halved mr-2 text-slate-400"></i> Privacy Policy
+                </a>
+                {% if demo_mode %}
+                <a href="/demo" class="block px-3 py-2.5 rounded-xl text-sm font-bold text-amber-800 bg-amber-50">
+                    <i class="fa-solid fa-sliders mr-2 text-amber-600"></i> Demo Simulator
+                </a>
+                {% endif %}
+                <a href="/auth/logout" class="block px-3 py-2.5 rounded-xl text-sm font-bold text-rose-600 hover:bg-rose-50">
+                    <i class="fa-solid fa-arrow-right-from-bracket mr-2"></i> Log Out
+                </a>
+            </div>
+            {% endif %}
+
+        </div>
+    </header>
+
+    <!-- Main Content Area -->
+    <main class="flex-1 max-w-7xl w-full mx-auto px-3 sm:px-6 lg:px-8 py-4 sm:py-6">
+        <!-- Flash Messages -->
+        {% if request.query_params.get('success') %}
+        <div class="mb-5 bg-emerald-50 border border-emerald-200 text-emerald-800 px-4 py-3 rounded-2xl flex items-center gap-2.5 shadow-sm text-sm">
+            <i class="fa-solid fa-circle-check text-emerald-600 text-base"></i>
+            <span>{{ request.query_params.get('success') }}</span>
+        </div>
+        {% endif %}
+
+        {% if request.query_params.get('error') %}
+        <div class="mb-5 bg-rose-50 border border-rose-200 text-rose-800 px-4 py-3 rounded-2xl flex items-center gap-2.5 shadow-sm text-sm">
+            <i class="fa-solid fa-circle-exclamation text-rose-600 text-base"></i>
+            <span>{{ request.query_params.get('error') }}</span>
+        </div>
+        {% endif %}
+
+        {% if request.query_params.get('info') %}
+        <div class="mb-5 bg-blue-50 border border-blue-200 text-blue-800 px-4 py-3 rounded-2xl flex items-center gap-2.5 shadow-sm text-sm">
+            <i class="fa-solid fa-circle-info text-blue-600 text-base"></i>
+            <span>{{ request.query_params.get('info') }}</span>
+        </div>
+        {% endif %}
+
+        {% block content %}{% endblock %}
+    </main>
+
+    <!-- Fixed Bottom Navigation Bar for Elder Mode on Phones -->
+    {% if user and user.role == 'elder' %}
+    <nav class="sm:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-t border-slate-200 px-2 py-2 flex items-center justify-around shadow-2xl pb-[max(0.6rem,env(safe-area-inset-bottom))]">
+        <a href="/medicines" class="flex flex-col items-center justify-center p-2 rounded-xl text-center {% if '/medicines' in request.url.path %}text-teal-700 font-black{% else %}text-slate-600 font-bold{% endif %}">
+            <i class="fa-solid fa-pills text-lg"></i>
+            <span class="text-[11px] mt-0.5">Medicines</span>
+        </a>
+        <a href="/appointments" class="flex flex-col items-center justify-center p-2 rounded-xl text-center {% if '/appointments' in request.url.path %}text-teal-700 font-black{% else %}text-slate-600 font-bold{% endif %}">
+            <i class="fa-solid fa-calendar-check text-lg"></i>
+            <span class="text-[11px] mt-0.5">Doctor</span>
+        </a>
+        <a href="/circle" class="flex flex-col items-center justify-center p-2 rounded-xl text-center {% if request.url.path == '/circle' %}text-teal-700 font-black{% else %}text-slate-600 font-bold{% endif %}">
+            <i class="fa-solid fa-people-roof text-lg"></i>
+            <span class="text-[11px] mt-0.5">Family</span>
+        </a>
+        <button type="button" onclick="triggerEmergencySOS(this)" class="flex flex-col items-center justify-center px-4 py-1.5 rounded-2xl bg-rose-600 text-white font-black text-center shadow-md active:scale-95">
+            <i class="fa-solid fa-triangle-exclamation text-base"></i>
+            <span class="text-[10px] uppercase tracking-wider">SOS</span>
+        </button>
+    </nav>
+    {% endif %}
+
+    <!-- Footer -->
+    <footer class="bg-white border-t border-slate-200 mt-auto py-6">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-3">
+            <div class="flex flex-col md:flex-row items-center justify-between gap-4 text-xs text-slate-500">
+                <div class="flex items-center gap-2">
+                    <span class="font-bold text-slate-700">CareMe</span>
+                    <span>•</span>
+                    <span>"Care from anywhere. Connected by CareMe."</span>
+                </div>
+                <div class="flex items-center gap-4">
+                    <a href="/privacy" class="text-brand-600 hover:underline font-semibold">Privacy Policy</a>
+                    <span>•</span>
+                    <a href="/settings" class="text-slate-600 hover:underline font-semibold">Settings</a>
+                    <span>•</span>
+                    <span class="text-slate-400">IST (Asia/Kolkata)</span>
+                </div>
+            </div>
+            <!-- Mandatory Medical Disclaimer Footer Note -->
+            <div class="border-t border-slate-100 pt-3 text-center">
+                <p class="text-[11px] text-slate-500 font-medium">
+                    <i class="fa-solid fa-shield-heart text-teal-600 mr-1"></i>
+                    CareMe does not give medical advice and does not replace emergency services (112).
+                </p>
+            </div>
+        </div>
+    </footer>
+
+    <!-- App JS -->
+    <script src="/static/js/app.js"></script>
+    {% block extra_scripts %}{% endblock %}
+</body>
+</html>

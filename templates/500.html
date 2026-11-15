@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+
+{% block title %}System Error - CareMe{% endblock %}
+
+{% block content %}
+<div class="max-w-2xl mx-auto py-12 px-4 text-center space-y-6">
+    <div class="inline-flex w-24 h-24 rounded-3xl bg-rose-50 border-2 border-rose-200 items-center justify-center text-rose-600 shadow-md">
+        <i class="fa-solid fa-triangle-exclamation text-4xl"></i>
+    </div>
+
+    <div class="space-y-2">
+        <span class="bg-rose-100 text-rose-800 text-xs font-black uppercase px-3 py-1 rounded-full">
+            500 • System Notice
+        </span>
+        <h1 class="text-3xl sm:text-4xl font-black text-slate-900 tracking-tight mt-2">
+            Something went unexpectedly wrong
+        </h1>
+        <p class="text-slate-500 text-sm sm:text-base max-w-md mx-auto">
+            Our care synchronization system ran into a temporary issue. Don't worry, your health data and care circle settings are secure.
+        </p>
+    </div>
+
+    <div class="flex flex-col sm:flex-row items-center justify-center gap-3 pt-4">
+        <button type="button" onclick="window.location.reload()" class="w-full sm:w-auto bg-brand-600 hover:bg-brand-700 text-white font-extrabold px-6 py-3.5 rounded-2xl shadow-md text-sm flex items-center justify-center gap-2 transition">
+            <i class="fa-solid fa-rotate-right"></i>
+            <span>Refresh Page</span>
+        </button>
+        <a href="/dashboard" class="w-full sm:w-auto bg-white hover:bg-slate-50 text-slate-700 font-bold px-6 py-3.5 rounded-2xl border border-slate-200 shadow-xs text-sm flex items-center justify-center gap-2 transition">
+            <i class="fa-solid fa-house"></i>
+            <span>Back to Dashboard</span>
+        </a>
+    </div>
+
+    <p class="text-xs text-slate-400 pt-6">
+        If you are experiencing a medical emergency, please call <strong>112</strong> immediately.
+    </p>
+</div>
+{% endblock %}
+

@@ -1,0 +1,506 @@
+{% extends "base.html" %}
+
+{% block title %}CareMe - Family Command Center{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto space-y-6">
+
+    <!-- Top Elder Status & Adherence Summary Bar -->
+    <div class="bg-white rounded-3xl border border-slate-200 p-6 sm:p-8 shadow-sm">
+        <div class="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6">
+            <!-- Elder Profile Info -->
+            <div class="flex items-center gap-4">
+                <div class="relative">
+                    <div class="w-16 h-16 sm:w-20 sm:h-20 rounded-3xl overflow-hidden border-2 border-brand-500 bg-slate-100 shadow-md">
+                        <img src="{{ elder.photo_url or 'https://images.unsplash.com/photo-1544717305-2782549b5136?w=200' }}" alt="{{ elder.name }}" class="w-full h-full object-cover">
+                    </div>
+                    <span class="absolute -bottom-1 -right-1 w-5 h-5 rounded-full bg-emerald-500 border-2 border-white flex items-center justify-center text-white text-[10px]" title="Active & Safe">
+                        <i class="fa-solid fa-check"></i>
+                    </span>
+                </div>
+                <div>
+                    <div class="flex items-center gap-2">
+                        <h1 class="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">{{ elder.name }} Devi</h1>
+                        <span class="bg-amber-100 text-amber-800 text-xs font-black px-2.5 py-0.5 rounded-full uppercase">Age {{ elder.age or 75 }}</span>
+                    </div>
+                    <p class="text-xs sm:text-sm text-slate-500 font-semibold mt-0.5">
+                        <i class="fa-solid fa-location-dot text-rose-500 mr-1"></i> {{ elder.city or 'Coimbatore' }}, Tamil Nadu • Circle Passcode: <code class="bg-slate-100 px-1.5 py-0.5 rounded text-brand-700 font-bold">{{ circle.passcode }}</code>
+                    </p>
+                    <div class="flex items-center gap-3 mt-2 text-xs font-bold text-slate-600">
+                        {% if permissions.can_view_location %}
+                        <span class="flex items-center gap-1 text-emerald-600">
+                            <span class="w-2 h-2 rounded-full bg-emerald-500 animate-ping"></span> Safe at Home Zone
+                        </span>
+                        {% else %}
+                        <span class="flex items-center gap-1 text-slate-400">
+                            <i class="fa-solid fa-location-slash mr-1"></i> Location hidden by elder
+                        </span>
+                        {% endif %}
+                        <span>•</span>
+                        <span>Logged in as <strong>{{ user.name }} ({{ user.role }})</strong></span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Adherence Metric Gauge Card -->
+            <div class="flex items-center gap-4 bg-slate-50 border border-slate-200/80 p-4 rounded-2xl w-full lg:w-auto justify-between lg:justify-start">
+                <div class="relative w-16 h-16 flex items-center justify-center">
+                    <svg class="w-16 h-16 -rotate-90">
+                        <circle cx="32" cy="32" r="26" stroke="#e2e8f0" stroke-width="6" fill="transparent" />
+                        <circle cx="32" cy="32" r="26" stroke="#0d9488" stroke-width="6" stroke-dasharray="163" stroke-dashoffset="{{ 163 - (163 * analytics.adherence_pct / 100) }}" stroke-linecap="round" fill="transparent" class="transition-all duration-1000" />
+                    </svg>
+                    <span class="absolute text-xs font-black text-slate-800">{{ analytics.adherence_pct }}%</span>
+                </div>
+                <div>
+                    <div class="flex items-center gap-2">
+                        <span class="text-sm font-extrabold text-slate-800">7-Day Adherence</span>
+                        <span class="bg-teal-100 text-teal-800 text-[10px] font-black px-1.5 py-0.5 rounded">Good</span>
+                    </div>
+                    <p class="text-xs text-slate-500 font-medium">
+                        <strong>{{ analytics.taken }}</strong> of <strong>{{ analytics.taken + analytics.missed }}</strong> scheduled doses confirmed
+                    </p>
+                    <p class="text-[11px] text-amber-700 font-semibold mt-0.5">
+                        <i class="fa-solid fa-triangle-exclamation mr-1"></i> {{ analytics.missed }} misses (mostly morning)
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ========================================================================= -->
+    <!-- REMOTE CARE CONFIDENCE CARD (REQUIREMENT 1) -->
+    <!-- ========================================================================= -->
+    {% if confidence %}
+    <div class="bg-white rounded-3xl border-2 {% if confidence.score >= 85 %}border-teal-200/90 shadow-sm{% elif confidence.score >= 65 %}border-amber-200/90 shadow-sm{% else %}border-rose-200/90 shadow-sm{% endif %} p-6 sm:p-8 space-y-6 relative overflow-hidden">
+        
+        <!-- Gradient Top Accent -->
+        <div class="absolute top-0 left-0 right-0 h-2 bg-gradient-to-r {% if confidence.score >= 85 %}from-teal-500 via-emerald-500 to-brand-600{% elif confidence.score >= 65 %}from-amber-400 via-orange-500 to-amber-600{% else %}from-rose-500 via-orange-500 to-red-600{% endif %}"></div>
+
+        <div class="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6">
+            <!-- Left Info -->
+            <div class="flex items-start gap-4">
+                <div class="w-14 h-14 rounded-2xl {% if confidence.score >= 85 %}bg-gradient-to-tr from-teal-500 to-emerald-600 text-white shadow-teal-500/20{% elif confidence.score >= 65 %}bg-gradient-to-tr from-amber-500 to-orange-500 text-white shadow-amber-500/20{% else %}bg-gradient-to-tr from-rose-500 to-orange-600 text-white shadow-rose-500/20{% endif %} flex items-center justify-center text-2xl shadow-md flex-shrink-0">
+                    <i class="fa-solid fa-shield-halved"></i>
+                </div>
+                <div>
+                    <div class="flex items-center gap-2">
+                        <span class="text-[10px] font-black uppercase tracking-wider px-2.5 py-0.5 rounded-full {% if confidence.score >= 85 %}bg-emerald-100 text-emerald-800 border border-emerald-200{% elif confidence.score >= 65 %}bg-amber-100 text-amber-800 border border-amber-200{% else %}bg-rose-100 text-rose-800 border border-rose-200{% endif %}">
+                            {{ confidence.label }}
+                        </span>
+                        <span class="text-xs font-bold text-slate-400">Remote Care Confidence Engine</span>
+                    </div>
+                    <h2 class="text-xl sm:text-2xl font-black text-slate-900 mt-1">
+                        Remote Care Confidence: <span class="{% if confidence.score >= 85 %}text-teal-600{% elif confidence.score >= 65 %}text-amber-600{% else %}text-rose-600{% endif %}">{{ confidence.score }}/100</span>
+                    </h2>
+                    <p class="text-xs sm:text-sm text-slate-600 font-medium mt-1 max-w-2xl leading-relaxed">
+                        {{ confidence.tone_message }}
+                    </p>
+                </div>
+            </div>
+
+            <!-- Right Gauge & Quick Action -->
+            <div class="flex items-center gap-4 w-full lg:w-auto justify-between lg:justify-end">
+                <div class="flex items-center gap-3 bg-slate-50 border border-slate-200/80 px-4 py-3 rounded-2xl">
+                    <div class="text-right">
+                        <p class="text-[10px] font-black uppercase tracking-wider text-slate-400">Status</p>
+                        <p class="text-xs font-extrabold text-slate-700">{{ confidence.label }}</p>
+                    </div>
+                    <div class="w-12 h-12 rounded-xl bg-white border border-slate-200 flex items-center justify-center shadow-xs">
+                        <span class="text-base font-black {% if confidence.score >= 85 %}text-teal-600{% elif confidence.score >= 65 %}text-amber-600{% else %}text-rose-600{% endif %}">
+                            {{ confidence.score }}
+                        </span>
+                    </div>
+                </div>
+
+                <div class="flex items-center gap-2 w-full sm:w-auto">
+                    <a href="tel:{{ elder.phone or '+919876543210' }}" class="flex-1 sm:flex-initial bg-white hover:bg-slate-50 text-slate-800 font-bold px-4 py-3 rounded-xl border border-slate-200 shadow-xs text-xs flex items-center justify-center gap-1.5 transition">
+                        <i class="fa-solid fa-phone text-emerald-600"></i>
+                        <span>Check In</span>
+                    </a>
+                    <a href="/assistant" class="flex-1 sm:flex-initial bg-teal-600 hover:bg-teal-700 text-white font-black px-4 py-3 rounded-xl shadow-md shadow-teal-600/20 text-xs flex items-center justify-center gap-1.5 transition">
+                        <i class="fa-solid fa-wand-magic-sparkles"></i>
+                        <span>Ask AI</span>
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Plain Language Reasons Grid -->
+        <div class="pt-4 border-t border-slate-100">
+            <p class="text-[11px] font-black uppercase tracking-wider text-slate-400 mb-3">
+                Evaluation Factors (Pure Python • 5 Components)
+            </p>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                {% for reason in confidence.reasons %}
+                <div class="flex items-start gap-2.5 p-3 rounded-2xl bg-slate-50/80 border border-slate-100 text-xs text-slate-700 font-medium">
+                    <i class="fa-solid fa-circle-check text-emerald-600 text-sm mt-0.5 flex-shrink-0"></i>
+                    <span>{{ reason }}</span>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- CareMe Intelligence Alert Banner -->
+    {% for insight in analytics.insights %}
+    <div class="rounded-3xl p-5 sm:p-6 border shadow-sm flex flex-col md:flex-row items-start md:items-center justify-between gap-4 {% if insight.type == 'warning' %}bg-gradient-to-r from-amber-50 to-orange-50 border-amber-200 text-amber-950{% elif insight.type == 'success' %}bg-gradient-to-r from-emerald-50 to-teal-50 border-emerald-200 text-emerald-950{% else %}bg-gradient-to-r from-blue-50 to-indigo-50 border-blue-200 text-blue-950{% endif %}">
+        <div class="flex items-start gap-4">
+            <div class="w-12 h-12 rounded-2xl flex items-center justify-center text-xl shadow-sm flex-shrink-0 {% if insight.type == 'warning' %}bg-amber-500 text-white{% elif insight.type == 'success' %}bg-emerald-500 text-white{% else %}bg-blue-600 text-white{% endif %}">
+                <i class="fa-solid fa-brain"></i>
+            </div>
+            <div>
+                <div class="flex items-center gap-2">
+                    <span class="text-[11px] font-black uppercase tracking-wider px-2 py-0.5 rounded {% if insight.type == 'warning' %}bg-amber-200 text-amber-900{% else %}bg-blue-200 text-blue-900{% endif %}">
+                        CareMe Pattern Analysis
+                    </span>
+                    <h3 class="font-black text-base">{{ insight.title }}</h3>
+                </div>
+                <p class="text-xs sm:text-sm mt-1 opacity-90">{{ insight.message }}</p>
+                <p class="text-xs font-bold mt-1.5 text-brand-800">
+                    <i class="fa-solid fa-lightbulb text-amber-500 mr-1"></i> {{ insight.action }}
+                </p>
+            </div>
+        </div>
+        <a href="tel:{{ elder.phone or '+919876543210' }}" class="bg-white hover:bg-slate-50 text-slate-900 font-extrabold px-4 py-2.5 rounded-xl shadow-sm text-xs flex items-center gap-2 whitespace-nowrap transition border border-slate-200">
+            <i class="fa-solid fa-phone text-emerald-600"></i>
+            <span>Call Lakshmi Now</span>
+        </a>
+    </div>
+    {% endfor %}
+
+    <!-- Main Grid: Left Column (Medication & Doctor), Right Column (Location, Members, Activity) -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+        <!-- Left 2 Columns -->
+        <div class="lg:col-span-2 space-y-6">
+
+            {% if permissions.can_view_health %}
+            <!-- Today's Medication Cockpit -->
+            <div class="bg-white rounded-3xl border border-slate-200 p-6 shadow-sm">
+                <div class="flex items-center justify-between mb-4">
+                    <div class="flex items-center gap-3">
+                        <span class="w-10 h-10 rounded-2xl bg-teal-100 text-teal-700 flex items-center justify-center text-lg">
+                            <i class="fa-solid fa-prescription-bottle-medical"></i>
+                        </span>
+                        <div>
+                            <h2 class="text-lg font-black text-slate-900">Today's Medication Tracker</h2>
+                            <p class="text-xs text-slate-500">Live confirmation and escalation status</p>
+                        </div>
+                    </div>
+                    {% if permissions.can_edit_medicines %}
+                    <a href="/medicines/add" class="text-xs font-bold bg-brand-50 hover:bg-brand-100 text-brand-700 px-3 py-1.5 rounded-xl border border-brand-200 transition">
+                        + Add Medicine
+                    </a>
+                    {% endif %}
+                </div>
+
+                <div class="space-y-3">
+                    {% if today_doses %}
+                        {% for dose in today_doses %}
+                        <div class="p-4 rounded-2xl border flex items-center justify-between gap-4 transition {% if dose.status == 'taken' %}border-emerald-200 bg-emerald-50/40{% elif dose.status == 'not_confirmed' %}border-rose-300 bg-rose-50/60{% else %}border-amber-200 bg-amber-50/40{% endif %}">
+                            <div class="flex items-center gap-3.5">
+                                <span class="w-10 h-10 rounded-xl flex items-center justify-center font-bold text-sm {% if dose.status == 'taken' %}bg-emerald-500 text-white{% elif dose.status == 'not_confirmed' %}bg-rose-500 text-white{% else %}bg-amber-400 text-amber-950{% endif %}">
+                                    {% if dose.status == 'taken' %}
+                                    <i class="fa-solid fa-check"></i>
+                                    {% elif dose.status == 'not_confirmed' %}
+                                    <i class="fa-solid fa-xmark"></i>
+                                    {% else %}
+                                    <i class="fa-regular fa-clock"></i>
+                                    {% endif %}
+                                </span>
+                                <div>
+                                    <div class="flex items-center gap-2">
+                                        <h4 class="font-extrabold text-slate-900 text-sm">{{ dose.medicine.name }}</h4>
+                                        <span class="text-xs text-slate-500 font-bold bg-white px-2 py-0.5 rounded-md border border-slate-200">{{ dose.medicine.dosage }}</span>
+                                    </div>
+                                    <p class="text-xs text-slate-600 mt-0.5">
+                                        Scheduled: <strong class="text-slate-800">{{ dose.scheduled_at.strftime('%I:%M %p') }}</strong> • {{ dose.medicine.instructions }}
+                                    </p>
+                                </div>
+                            </div>
+
+                            <div class="flex items-center gap-2">
+                                {% if dose.status == 'taken' %}
+                                <div class="text-right">
+                                    <span class="bg-emerald-100 text-emerald-800 text-[11px] font-black uppercase px-2 py-0.5 rounded-full">
+                                        Confirmed
+                                    </span>
+                                    <p class="text-[10px] text-slate-500 mt-0.5">{{ dose.confirmed_at.strftime('%I:%M %p') if dose.confirmed_at else 'On time' }}</p>
+                                </div>
+                                {% elif dose.status == 'not_confirmed' %}
+                                <div class="text-right">
+                                    <span class="bg-rose-100 text-rose-800 text-[11px] font-black uppercase px-2 py-0.5 rounded-full">
+                                        Missed (>2h Overdue)
+                                    </span>
+                                </div>
+                                {% else %}
+                                <form method="POST" action="/medicines/dose/{{ dose.id }}/take">
+                                    <input type="hidden" name="redirect_to" value="/dashboard">
+                                    <button type="submit" class="bg-brand-600 hover:bg-brand-700 text-white text-xs font-bold px-3 py-1.5 rounded-xl shadow-sm transition">
+                                        Mark Taken
+                                    </button>
+                                </form>
+                                {% endif %}
+                            </div>
+                        </div>
+                        {% endfor %}
+                    {% else %}
+                        <p class="text-xs text-slate-500 text-center py-4">No medication schedule generated for today yet.</p>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- 7-Day Adherence Chart Bar Visual -->
+            <div class="bg-white rounded-3xl border border-slate-200 p-6 shadow-sm">
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="font-extrabold text-sm text-slate-900">7-Day Adherence Trend (Past Week)</h3>
+                    <span class="text-xs text-slate-400 font-medium">Goal: ≥ 90%</span>
+                </div>
+                <div class="overflow-x-auto pb-1">
+                    <div class="grid grid-cols-7 gap-2 min-w-[340px]">
+                        {% for day in analytics.daily_stats %}
+                        <div class="bg-slate-50 rounded-2xl p-2.5 text-center border border-slate-100 flex flex-col justify-between h-28">
+                            <span class="text-[11px] font-bold text-slate-600 truncate">{{ day.date }}</span>
+                            
+                            <div class="w-full bg-slate-200 rounded-full h-12 relative flex items-end justify-center overflow-hidden">
+                                <div class="w-full {% if day.pct >= 85 %}bg-emerald-500{% elif day.pct >= 60 %}bg-amber-400{% else %}bg-rose-500{% endif %} rounded-b-full transition-all duration-500" style="height: {{ day.pct }}%;"></div>
+                            </div>
+
+                            <span class="text-[11px] font-extrabold {% if day.pct >= 85 %}text-emerald-700{% elif day.pct >= 60 %}text-amber-700{% else %}text-rose-700{% endif %}">
+                                {{ day.pct }}%
+                            </span>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- ================================================================= -->
+            <!-- WEEKLY DOCTOR & CARE REPORT CARD (REQUIREMENTS 2 & 4) -->
+            <!-- ================================================================= -->
+            {% if weekly_summary and permissions.can_view_health %}
+            <div class="bg-white rounded-3xl border border-slate-200 p-6 sm:p-8 shadow-sm space-y-5">
+                <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                    <div class="flex items-center gap-3">
+                        <div class="w-12 h-12 rounded-2xl bg-indigo-50 border border-indigo-200 text-indigo-600 flex items-center justify-center text-xl shadow-xs">
+                            <i class="fa-solid fa-file-waveform"></i>
+                        </div>
+                        <div>
+                            <div class="flex items-center gap-2">
+                                <span class="bg-indigo-100 text-indigo-800 text-[10px] font-black uppercase px-2 py-0.5 rounded-full">
+                                    Weekly Clinical Briefing
+                                </span>
+                                <span class="text-[10px] text-slate-400 font-bold">
+                                    {% if weekly_summary.source == 'gemini' %}
+                                    <i class="fa-solid fa-brain text-brand-600 mr-1"></i> Gemini 2.5 Flash
+                                    {% else %}
+                                    <i class="fa-solid fa-clipboard-check text-teal-600 mr-1"></i> CareMe Clinical Engine
+                                    {% endif %}
+                                </span>
+                            </div>
+                            <h3 class="text-lg font-black text-slate-900 mt-0.5">
+                                Weekly Doctor & Care Summary
+                            </h3>
+                        </div>
+                    </div>
+
+                    <!-- Download Doctor Report (PDF) button (Requirement 4) -->
+                    <a href="/assistant/report/pdf" class="w-full sm:w-auto bg-gradient-to-r from-brand-600 to-teal-600 hover:from-brand-700 hover:to-teal-700 text-white font-black px-5 py-2.5 rounded-xl text-xs shadow-md shadow-brand-600/20 flex items-center justify-center gap-2 transition">
+                        <i class="fa-solid fa-file-pdf text-sm"></i>
+                        <span>Download Doctor Report (PDF)</span>
+                    </a>
+                </div>
+
+                <!-- Weekly Summary Content (Markdown / paragraphs) -->
+                <div class="bg-slate-50/80 border border-slate-200/70 rounded-2xl p-5 text-xs sm:text-sm text-slate-700 space-y-3 leading-relaxed">
+                    {{ weekly_summary.summary | replace('\n\n', '<br/><br/>') | replace('**', '<strong>') | safe }}
+                </div>
+
+                <!-- Consultation Context Bar -->
+                {% if next_appointment %}
+                <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 p-3.5 rounded-2xl bg-indigo-50/60 border border-indigo-100 text-xs">
+                    <div class="flex items-center gap-2 text-indigo-950 font-semibold">
+                        <i class="fa-solid fa-stethoscope text-indigo-600 text-sm"></i>
+                        <span>Doctor Consultation: <strong>{{ next_appointment.doctor }} ({{ next_appointment.specialty }})</strong> at {{ next_appointment.hospital }}</span>
+                    </div>
+                    <a href="/assistant" class="text-brand-700 hover:text-brand-800 font-extrabold flex items-center gap-1">
+                        <span>Prepare questions in Assistant</span>
+                        <i class="fa-solid fa-arrow-right text-[10px]"></i>
+                    </a>
+                </div>
+                {% endif %}
+            </div>
+            {% endif %}
+            {% else %}
+            <div class="bg-white rounded-3xl border border-slate-200 p-8 shadow-sm text-center space-y-3">
+                <div class="w-14 h-14 rounded-2xl bg-amber-50 text-amber-600 border border-amber-200 flex items-center justify-center text-2xl mx-auto shadow-inner">
+                    <i class="fa-solid fa-lock"></i>
+                </div>
+                <h3 class="text-lg font-black text-slate-800">Health Records Restricted</h3>
+                <p class="text-sm text-slate-500 max-w-md mx-auto">
+                    {{ elder.name }} has not shared health and medication details with you.
+                </p>
+            </div>
+            {% endif %}
+
+            <!-- Doctor Appointment Card (Dr. Ramesh, Cardiologist, KG Hospital) -->
+            {% if next_appointment %}
+            <div class="bg-gradient-to-br from-slate-900 to-indigo-950 text-white rounded-3xl p-6 shadow-xl relative overflow-hidden">
+                <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                    <div class="flex items-start gap-4">
+                        <div class="w-14 h-14 rounded-2xl bg-indigo-500/20 border border-indigo-400/30 flex items-center justify-center text-2xl text-indigo-300 flex-shrink-0">
+                            <i class="fa-solid fa-stethoscope"></i>
+                        </div>
+                        <div>
+                            <span class="bg-indigo-500/30 text-indigo-200 text-[10px] font-extrabold uppercase px-2.5 py-0.5 rounded-full">
+                                Scheduled Cardiology Visit
+                            </span>
+                            <h3 class="text-xl font-black mt-1">{{ next_appointment.doctor }} ({{ next_appointment.specialty }})</h3>
+                            <p class="text-indigo-200 text-xs mt-0.5">
+                                <i class="fa-solid fa-hospital mr-1"></i> {{ next_appointment.hospital }} • {{ next_appointment.address }}
+                            </p>
+                            <p class="text-indigo-300 text-xs mt-1 font-semibold">
+                                <i class="fa-regular fa-clock mr-1"></i> {{ next_appointment.datetime.strftime('%A, %b %d at %I:%M %p') }}
+                            </p>
+                        </div>
+                    </div>
+
+                    <div class="flex flex-col gap-2 w-full sm:w-auto">
+                        <form method="POST" action="/appointments/{{ next_appointment.id }}/accompany">
+                            <button type="submit" class="w-full sm:w-auto bg-brand-500 hover:bg-brand-600 text-white text-xs font-black px-4 py-2.5 rounded-xl shadow transition flex items-center justify-center gap-1.5">
+                                <i class="fa-solid fa-user-check"></i>
+                                <span>I Will Accompany</span>
+                            </button>
+                        </form>
+                        <a href="tel:{{ next_appointment.phone }}" class="w-full sm:w-auto bg-white/10 hover:bg-white/20 text-white text-xs font-bold px-4 py-2 rounded-xl text-center transition">
+                            <i class="fa-solid fa-phone mr-1"></i> {{ next_appointment.phone }}
+                        </a>
+                    </div>
+                </div>
+
+                {% if next_appointment.notes %}
+                <div class="mt-4 pt-3 border-t border-indigo-800/60 text-xs text-indigo-200 flex items-start gap-2">
+                    <i class="fa-solid fa-note-sticky text-indigo-400 mt-0.5"></i>
+                    <span><strong>Notes:</strong> {{ next_appointment.notes }}</span>
+                </div>
+                {% endif %}
+            </div>
+            {% endif %}
+
+        </div>
+
+        <!-- Right 1 Column -->
+        <div class="space-y-6">
+
+            <!-- Live Location Map & Safety Card (Elder Controlled) -->
+            {% if permissions.can_view_location %}
+            <div class="bg-white rounded-3xl border border-slate-200 p-6 shadow-sm">
+                <div class="flex items-center justify-between mb-3">
+                    <div class="flex items-center gap-2">
+                        <span class="w-3 h-3 rounded-full bg-emerald-500 animate-pulse"></span>
+                        <h3 class="font-extrabold text-sm text-slate-900">Live Location (GPS)</h3>
+                    </div>
+                    <span class="bg-emerald-100 text-emerald-800 text-[10px] font-black uppercase px-2 py-0.5 rounded-full">Safe Zone</span>
+                </div>
+
+                <!-- Simulated Map Graphic -->
+                <div class="relative bg-slate-100 rounded-2xl overflow-hidden h-40 border border-slate-200 flex items-center justify-center text-center p-4">
+                    <div class="absolute inset-0 opacity-40 bg-[radial-gradient(#0d9488_1px,transparent_1px)] [background-size:16px_16px]"></div>
+                    <div class="relative z-10">
+                        <div class="w-12 h-12 rounded-full bg-brand-600 text-white flex items-center justify-center text-xl shadow-lg mx-auto mb-1 animate-bounce">
+                            <i class="fa-solid fa-house-chimney"></i>
+                        </div>
+                        <p class="text-xs font-extrabold text-slate-800">Coimbatore Residence</p>
+                        <p class="text-[10px] text-slate-500">11.0168° N, 76.9558° E • Updated just now</p>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-2 gap-2 mt-3 text-center">
+                    <div class="bg-slate-50 p-2 rounded-xl border border-slate-100">
+                        <span class="text-[10px] text-slate-400 font-bold uppercase">Device Battery</span>
+                        <p class="text-xs font-black text-slate-800"><i class="fa-solid fa-battery-three-quarters text-emerald-600 mr-1"></i> 88%</p>
+                    </div>
+                    <div class="bg-slate-50 p-2 rounded-xl border border-slate-100">
+                        <span class="text-[10px] text-slate-400 font-bold uppercase">Geofence</span>
+                        <p class="text-xs font-black text-emerald-700">Inside Perimeter</p>
+                    </div>
+                </div>
+            </div>
+            {% else %}
+            <!-- Location Restricted Notice -->
+            <div class="bg-white rounded-3xl border border-slate-200 p-6 shadow-sm">
+                <div class="flex items-center gap-2 mb-3">
+                    <span class="w-3 h-3 rounded-full bg-slate-300"></span>
+                    <h3 class="font-extrabold text-sm text-slate-800">Live Location</h3>
+                </div>
+                <div class="bg-slate-50 border border-slate-200 rounded-2xl p-6 text-center space-y-2">
+                    <div class="w-12 h-12 rounded-full bg-amber-100 text-amber-700 flex items-center justify-center text-xl mx-auto shadow-inner">
+                        <i class="fa-solid fa-location-slash"></i>
+                    </div>
+                    <h4 class="font-bold text-slate-900 text-sm">Location Access Restricted</h4>
+                    <p class="text-xs text-slate-500 font-medium max-w-xs mx-auto">
+                        {{ elder.name }} has not shared location tracking with you.
+                    </p>
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Care Circle Quick Team -->
+            <div class="bg-white rounded-3xl border border-slate-200 p-6 shadow-sm">
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="font-extrabold text-sm text-slate-900">Care Circle Members</h3>
+                    <a href="/circle" class="text-xs font-bold text-brand-600 hover:text-brand-800">Manage →</a>
+                </div>
+
+                <div class="space-y-3">
+                    {% for m in members %}
+                    <div class="flex items-center justify-between p-2.5 rounded-xl hover:bg-slate-50 transition border border-transparent hover:border-slate-100">
+                        <div class="flex items-center gap-3">
+                            <div class="w-9 h-9 rounded-full overflow-hidden bg-slate-200 border border-brand-400 flex-shrink-0">
+                                <img src="{{ m.user.photo_url or 'https://api.dicebear.com/7.x/personas/svg?seed=' + m.user.name }}" alt="{{ m.user.name }}" class="w-full h-full object-cover">
+                            </div>
+                            <div>
+                                <h4 class="text-xs font-bold text-slate-900">{{ m.user.name }}</h4>
+                                <p class="text-[10px] text-slate-500 font-medium">{{ m.relationship }} • {{ m.user.city }}</p>
+                            </div>
+                        </div>
+                        <span class="text-[10px] font-bold px-2 py-0.5 rounded-full {% if m.relationship == 'Son' or m.relationship == 'Daughter' %}bg-purple-100 text-purple-800{% else %}bg-indigo-100 text-indigo-800{% endif %}">
+                            {{ m.relationship }}
+                        </span>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <!-- Recent Activity Log Timeline -->
+            <div class="bg-white rounded-3xl border border-slate-200 p-6 shadow-sm">
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="font-extrabold text-sm text-slate-900">Live Circle Activity</h3>
+                    <a href="/circle/activity" class="text-xs font-bold text-brand-600 hover:text-brand-800">All Logs →</a>
+                </div>
+
+                <div class="space-y-3.5">
+                    {% if recent_activities %}
+                        {% for act in recent_activities[:5] %}
+                        <div class="flex items-start gap-2.5 text-xs">
+                            <span class="w-2 h-2 rounded-full bg-brand-500 mt-1.5 flex-shrink-0"></span>
+                            <div class="flex-1 min-w-0">
+                                <p class="text-slate-800 font-medium leading-relaxed">{{ act.action }}</p>
+                                <span class="text-[10px] text-slate-400">{{ act.timestamp.strftime('%b %d, %I:%M %p') }}</span>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    {% else %}
+                        <p class="text-xs text-slate-400">No activity logged yet.</p>
+                    {% endif %}
+                </div>
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+{% endblock %}
+

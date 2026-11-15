@@ -1,0 +1,103 @@
+{% extends "base.html" %}
+
+{% block title %}CareMe - Membership Pending Approval{% endblock %}
+
+{% block content %}
+<div class="max-w-3xl mx-auto py-12 px-4">
+
+    <!-- Card Container -->
+    <div class="bg-white rounded-3xl border-2 border-amber-200 p-8 sm:p-12 shadow-xl text-center space-y-8 relative overflow-hidden">
+        
+        <!-- Top Accent Gradient Bar -->
+        <div class="absolute top-0 left-0 right-0 h-3 bg-gradient-to-r from-amber-400 via-orange-400 to-teal-500"></div>
+
+        <!-- Animated Status Icon -->
+        <div class="relative inline-block">
+            <div class="w-24 h-24 rounded-3xl bg-amber-100 text-amber-600 flex items-center justify-center text-4xl shadow-inner mx-auto">
+                <i class="fa-solid fa-hourglass-half animate-pulse"></i>
+            </div>
+            <span class="absolute -bottom-2 -right-2 w-8 h-8 rounded-full bg-amber-500 border-4 border-white text-white flex items-center justify-center text-xs shadow">
+                <i class="fa-solid fa-lock"></i>
+            </span>
+        </div>
+
+        <!-- Headline & Waiting Message -->
+        <div class="space-y-3">
+            <span class="bg-amber-100 text-amber-800 text-xs font-black uppercase tracking-wider px-3 py-1 rounded-full border border-amber-200">
+                Elder Privacy Protected
+            </span>
+            <h1 class="text-3xl sm:text-4xl font-black text-slate-900 tracking-tight">
+                Waiting for {{ elder.name }} to approve
+            </h1>
+            <p class="text-base sm:text-lg text-slate-600 font-medium max-w-xl mx-auto">
+                Hello <strong>{{ user.name }}</strong>, your request to join <strong>{{ elder.name }}'s Care Circle</strong> as <em>{{ membership.relationship }}</em> has been received and is awaiting approval.
+            </p>
+        </div>
+
+        <!-- Care Circle Details Pill Card -->
+        <div class="bg-slate-50 border border-slate-200 rounded-2xl p-6 text-left space-y-4 max-w-lg mx-auto">
+            <div class="flex items-center justify-between pb-3 border-b border-slate-200">
+                <span class="text-xs font-bold uppercase text-slate-400">Care Circle Elder</span>
+                <span class="text-sm font-extrabold text-slate-900 flex items-center gap-2">
+                    <img src="{{ elder.photo_url or 'https://images.unsplash.com/photo-1544717305-2782549b5136?w=100' }}" class="w-6 h-6 rounded-full object-cover">
+                    {{ elder.name }} Devi ({{ elder.city or 'Coimbatore' }})
+                </span>
+            </div>
+
+            <div class="flex items-center justify-between pb-3 border-b border-slate-200">
+                <span class="text-xs font-bold uppercase text-slate-400">Your Requested Role</span>
+                <span class="text-xs font-extrabold px-2.5 py-1 rounded-full bg-purple-100 text-purple-800">
+                    {{ membership.relationship }}
+                </span>
+            </div>
+
+            <div class="flex items-center justify-between pb-3 border-b border-slate-200">
+                <span class="text-xs font-bold uppercase text-slate-400">Passcode Used</span>
+                <code class="bg-white border border-slate-300 px-2 py-0.5 rounded text-xs font-black text-brand-700 tracking-widest">
+                    {{ circle.passcode }}
+                </code>
+            </div>
+
+            <div class="flex items-center justify-between">
+                <span class="text-xs font-bold uppercase text-slate-400">Status</span>
+                <span class="text-xs font-black text-amber-700 flex items-center gap-1.5">
+                    <span class="w-2 h-2 rounded-full bg-amber-500 animate-ping"></span>
+                    Pending Elder Approval
+                </span>
+            </div>
+        </div>
+
+        <!-- Why Approval is Required -->
+        <div class="p-4 bg-teal-50/70 border border-teal-200 rounded-2xl text-xs sm:text-sm text-teal-900 text-left flex items-start gap-3 max-w-lg mx-auto">
+            <i class="fa-solid fa-shield-halved text-teal-600 text-xl mt-0.5 flex-shrink-0"></i>
+            <div>
+                <p class="font-bold text-teal-950">Elder Dignity & Data Protection</p>
+                <p class="text-teal-800 text-xs mt-0.5">
+                    CareMe puts elderly family members in complete control of who can inspect their medical routines, prescriptions, doctor records, and GPS coordinates.
+                </p>
+            </div>
+        </div>
+
+        <!-- Actions -->
+        <div class="flex flex-col sm:flex-row items-center justify-center gap-4 pt-2">
+            <button onclick="window.location.reload()" class="w-full sm:w-auto bg-brand-600 hover:bg-brand-700 text-white font-extrabold px-6 py-3.5 rounded-2xl shadow-md text-sm flex items-center justify-center gap-2 transition">
+                <i class="fa-solid fa-arrows-rotate"></i>
+                <span>Check Approval Status</span>
+            </button>
+
+            <!-- Quick Switch to Lakshmi for Testing/Demo -->
+            {% if demo_users %}
+            {% for du in demo_users if du.role == 'elder' %}
+            <a href="/auth/switch/{{ du.id }}" class="w-full sm:w-auto bg-amber-100 hover:bg-amber-200 text-amber-900 font-bold px-5 py-3.5 rounded-2xl border border-amber-300 text-sm flex items-center justify-center gap-2 transition">
+                <i class="fa-solid fa-user-check"></i>
+                <span>Switch to {{ du.name }} (Elder) to Approve</span>
+            </a>
+            {% endfor %}
+            {% endif %}
+        </div>
+
+    </div>
+
+</div>
+{% endblock %}
+

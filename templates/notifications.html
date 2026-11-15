@@ -1,0 +1,88 @@
+{% extends "base.html" %}
+
+{% block title %}Notifications - CareMe{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto space-y-6">
+
+    <div class="bg-white rounded-3xl border border-slate-200 p-6 sm:p-8 shadow-sm">
+        <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6 pb-4 border-b border-slate-100">
+            <div>
+                <h1 class="text-2xl font-black text-slate-900">Notifications & Alerts</h1>
+                <p class="text-xs text-slate-500">Real-time alerts, dose reminders, and doctor updates for {{ user.name }}</p>
+            </div>
+
+            <form method="POST" action="/notifications/read-all">
+                <button type="submit" class="bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold px-4 py-2 rounded-xl transition">
+                    <i class="fa-solid fa-check-double mr-1"></i> Mark All as Read
+                </button>
+            </form>
+        </div>
+
+        <!-- Filter tabs -->
+        <div class="flex items-center gap-2 overflow-x-auto pb-2 text-xs font-bold">
+            <a href="/notifications" class="px-3.5 py-1.5 rounded-xl transition {% if current_filter == 'all' %}bg-brand-600 text-white shadow-sm{% else %}bg-slate-100 text-slate-600 hover:bg-slate-200{% endif %}">
+                All
+            </a>
+            <a href="/notifications?filter_type=dose" class="px-3.5 py-1.5 rounded-xl transition {% if current_filter == 'dose' %}bg-brand-600 text-white shadow-sm{% else %}bg-slate-100 text-slate-600 hover:bg-slate-200{% endif %}">
+                Dose Reminders
+            </a>
+            <a href="/notifications?filter_type=missed" class="px-3.5 py-1.5 rounded-xl transition {% if current_filter == 'missed' %}bg-brand-600 text-white shadow-sm{% else %}bg-slate-100 text-slate-600 hover:bg-slate-200{% endif %}">
+                Missed Doses
+            </a>
+            <a href="/notifications?filter_type=appointment" class="px-3.5 py-1.5 rounded-xl transition {% if current_filter == 'appointment' %}bg-brand-600 text-white shadow-sm{% else %}bg-slate-100 text-slate-600 hover:bg-slate-200{% endif %}">
+                Appointments
+            </a>
+            <a href="/notifications?filter_type=sos" class="px-3.5 py-1.5 rounded-xl transition {% if current_filter == 'sos' %}bg-brand-600 text-white shadow-sm{% else %}bg-slate-100 text-slate-600 hover:bg-slate-200{% endif %}">
+                Emergency SOS
+            </a>
+        </div>
+
+        <!-- Notifications list -->
+        <div class="space-y-3 mt-6">
+            {% if notifications %}
+                {% for n in notifications %}
+                <div class="p-4 rounded-2xl border transition flex items-start justify-between gap-4 {% if not n.is_read %}bg-brand-50/40 border-brand-200{% else %}bg-white border-slate-100{% endif %}">
+                    <div class="flex items-start gap-3.5">
+                        <span class="w-10 h-10 rounded-xl flex items-center justify-center text-base flex-shrink-0 mt-0.5 {% if n.type == 'sos' %}bg-rose-500 text-white{% elif n.type == 'missed' %}bg-amber-500 text-white{% elif n.type == 'appointment' %}bg-indigo-500 text-white{% else %}bg-teal-500 text-white{% endif %}">
+                            {% if n.type == 'sos' %}
+                            <i class="fa-solid fa-triangle-exclamation"></i>
+                            {% elif n.type == 'missed' %}
+                            <i class="fa-solid fa-bell-slash"></i>
+                            {% elif n.type == 'appointment' %}
+                            <i class="fa-solid fa-calendar-check"></i>
+                            {% else %}
+                            <i class="fa-solid fa-pills"></i>
+                            {% endif %}
+                        </span>
+                        <div>
+                            <div class="flex items-center gap-2">
+                                <span class="text-[10px] font-black uppercase px-2 py-0.5 rounded-full {% if n.type == 'sos' %}bg-rose-100 text-rose-800{% elif n.type == 'missed' %}bg-amber-100 text-amber-800{% elif n.type == 'appointment' %}bg-indigo-100 text-indigo-800{% else %}bg-teal-100 text-teal-800{% endif %}">
+                                    {{ n.type }}
+                                </span>
+                                <span class="text-[11px] text-slate-400 font-medium">
+                                    {{ n.created_at.strftime('%a %b %d • %I:%M %p') }}
+                                </span>
+                            </div>
+                            <p class="text-xs sm:text-sm font-medium text-slate-800 mt-1 leading-relaxed">{{ n.message }}</p>
+                        </div>
+                    </div>
+
+                    {% if not n.is_read %}
+                    <form method="POST" action="/notifications/{{ n.id }}/read">
+                        <button type="submit" title="Mark as read" class="text-slate-400 hover:text-brand-600 p-1 text-sm">
+                            <i class="fa-regular fa-circle-check"></i>
+                        </button>
+                    </form>
+                    {% endif %}
+                </div>
+                {% endfor %}
+            {% else %}
+                <p class="text-center text-slate-400 py-8">No notifications in this folder.</p>
+            {% endif %}
+        </div>
+    </div>
+
+</div>
+{% endblock %}
+

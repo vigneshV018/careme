@@ -1,0 +1,227 @@
+{% extends "base.html" %}
+
+{% block title %}Login - CareMe{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto py-6">
+    <div class="text-center mb-8">
+        <div class="inline-flex w-16 h-16 rounded-3xl bg-gradient-to-tr from-brand-600 to-teal-400 items-center justify-center text-white shadow-xl shadow-brand-500/20 mb-4">
+            <i class="fa-solid fa-heart-pulse text-2xl"></i>
+        </div>
+        <h1 class="text-3xl font-extrabold text-slate-900 tracking-tight">Welcome to CareMe</h1>
+        <p class="text-brand-700 font-semibold text-base mt-1">Care from anywhere. Connected by CareMe.</p>
+        <p class="text-slate-500 text-sm mt-1 max-w-md mx-auto">Your family's health, connected.</p>
+    </div>
+
+    <!-- Tab navigation -->
+    <div class="bg-white rounded-3xl border border-slate-200 shadow-xl overflow-hidden max-w-2xl mx-auto">
+        <div class="grid {% if demo_mode %}grid-cols-3{% else %}grid-cols-2{% endif %} border-b border-slate-200 text-center text-xs sm:text-sm font-bold bg-slate-50">
+            {% if demo_mode %}
+            <button type="button" onclick="switchLoginTab('demo')" id="tab-btn-demo" class="py-3.5 px-2 border-b-2 border-brand-600 text-brand-700 bg-white transition flex items-center justify-center gap-1.5">
+                <i class="fa-solid fa-bolt text-brand-500"></i>
+                <span>1-Click Demo</span>
+            </button>
+            {% endif %}
+            <button type="button" onclick="switchLoginTab('pin')" id="tab-btn-pin" class="py-3.5 px-2 border-b-2 {% if not demo_mode %}border-brand-600 text-brand-700 bg-white{% else %}border-transparent text-slate-500 hover:text-slate-800{% endif %} transition flex items-center justify-center gap-1.5">
+                <i class="fa-solid fa-key text-amber-500"></i>
+                <span>Elder PIN</span>
+            </button>
+            <button type="button" onclick="switchLoginTab('password')" id="tab-btn-password" class="py-3.5 px-2 border-b-2 border-transparent text-slate-500 hover:text-slate-800 transition flex items-center justify-center gap-1.5">
+                <i class="fa-solid fa-lock text-slate-500"></i>
+                <span>Email & Password</span>
+            </button>
+        </div>
+
+        <div class="p-6 sm:p-8">
+            {% if demo_mode %}
+            <!-- TAB 1: 1-Click Demo Accounts -->
+            <div id="tab-content-demo" class="space-y-4">
+                <div class="bg-brand-50/70 border border-brand-200 rounded-2xl p-4 text-xs text-brand-900 flex items-start gap-3">
+                    <i class="fa-solid fa-wand-magic-sparkles text-brand-600 text-base mt-0.5"></i>
+                    <div>
+                        <strong class="font-bold">Hackathon Instant Access:</strong> Click any of the pre-configured personas below to explore CareMe from that perspective.
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                    <!-- Lakshmi Card -->
+                    <a href="/auth/switch/1" class="group p-4 rounded-2xl border-2 border-amber-200 hover:border-amber-400 bg-amber-50/40 hover:bg-amber-50 transition flex items-center gap-3.5 shadow-sm">
+                        <div class="w-12 h-12 rounded-2xl overflow-hidden bg-amber-100 border border-amber-300 flex-shrink-0">
+                            <img src="https://images.unsplash.com/photo-1544717305-2782549b5136?w=150" alt="Lakshmi" class="w-full h-full object-cover">
+                        </div>
+                        <div class="flex-1 min-w-0">
+                            <div class="flex items-center justify-between">
+                                <h3 class="font-bold text-slate-900 group-hover:text-amber-800 text-sm">Lakshmi</h3>
+                                <span class="bg-amber-200 text-amber-900 text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-full">Elder</span>
+                            </div>
+                            <p class="text-xs text-slate-600">Age 75 • Coimbatore</p>
+                            <p class="text-[11px] text-amber-700 font-semibold mt-0.5">Large Text • 1-Tap Meds • PIN 1234</p>
+                        </div>
+                    </a>
+
+                    <!-- Arun Card -->
+                    <a href="/auth/switch/2" class="group p-4 rounded-2xl border-2 border-brand-200 hover:border-brand-500 bg-brand-50/40 hover:bg-brand-50 transition flex items-center gap-3.5 shadow-sm">
+                        <div class="w-12 h-12 rounded-2xl overflow-hidden bg-brand-100 border border-brand-300 flex-shrink-0">
+                            <img src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150" alt="Arun" class="w-full h-full object-cover">
+                        </div>
+                        <div class="flex-1 min-w-0">
+                            <div class="flex items-center justify-between">
+                                <h3 class="font-bold text-slate-900 group-hover:text-brand-800 text-sm">Arun</h3>
+                                <span class="bg-brand-200 text-brand-900 text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-full">Son (Family)</span>
+                            </div>
+                            <p class="text-xs text-slate-600">Age 30 • Chennai</p>
+                            <p class="text-[11px] text-brand-700 font-semibold mt-0.5">86% Adherence • Alert Escalation</p>
+                        </div>
+                    </a>
+
+                    <!-- Priya Card -->
+                    <a href="/auth/switch/3" class="group p-4 rounded-2xl border-2 border-purple-200 hover:border-purple-400 bg-purple-50/40 hover:bg-purple-50 transition flex items-center gap-3.5 shadow-sm">
+                        <div class="w-12 h-12 rounded-2xl overflow-hidden bg-purple-100 border border-purple-300 flex-shrink-0">
+                            <img src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150" alt="Priya" class="w-full h-full object-cover">
+                        </div>
+                        <div class="flex-1 min-w-0">
+                            <div class="flex items-center justify-between">
+                                <h3 class="font-bold text-slate-900 group-hover:text-purple-800 text-sm">Priya</h3>
+                                <span class="bg-purple-200 text-purple-900 text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-full">Daughter</span>
+                            </div>
+                            <p class="text-xs text-slate-600">Age 28 • Bengaluru</p>
+                            <p class="text-[11px] text-purple-700 font-semibold mt-0.5">Remote Circle • Doctor Visit Sync</p>
+                        </div>
+                    </a>
+
+                    <!-- Meena Card -->
+                    <a href="/auth/switch/4" class="group p-4 rounded-2xl border-2 border-indigo-200 hover:border-indigo-400 bg-indigo-50/40 hover:bg-indigo-50 transition flex items-center gap-3.5 shadow-sm">
+                        <div class="w-12 h-12 rounded-2xl overflow-hidden bg-indigo-100 border border-indigo-300 flex-shrink-0">
+                            <img src="https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=150" alt="Meena" class="w-full h-full object-cover">
+                        </div>
+                        <div class="flex-1 min-w-0">
+                            <div class="flex items-center justify-between">
+                                <h3 class="font-bold text-slate-900 group-hover:text-indigo-800 text-sm">Meena</h3>
+                                <span class="bg-indigo-200 text-indigo-900 text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-full">Caregiver</span>
+                            </div>
+                            <p class="text-xs text-slate-600">Age 35 • Coimbatore</p>
+                            <p class="text-[11px] text-indigo-700 font-semibold mt-0.5">Shift Checklist • Vitals Logging</p>
+                        </div>
+                    </a>
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- TAB 2: Elder PIN Keypad -->
+            <div id="tab-content-pin" class="{% if demo_mode %}hidden{% endif %} space-y-6">
+                <div class="text-center">
+                    <p class="text-sm font-semibold text-slate-600">Enter your 4-digit Easy PIN</p>
+                    {% if demo_mode %}
+                    <p class="text-xs text-brand-600 font-bold mt-1">Hint for demo: Lakshmi's PIN is <strong>1234</strong></p>
+                    {% endif %}
+                </div>
+
+                <form method="POST" action="/auth/pin" id="pin-form">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token(request) }}">
+                    <div class="flex justify-center mb-6">
+                        <input type="password" id="pin-input" name="pin" maxlength="4" autofocus
+                            class="w-48 text-center text-3xl font-extrabold tracking-widest py-3 border-2 border-brand-500 rounded-2xl focus:outline-none focus:ring-4 focus:ring-brand-200 bg-slate-50"
+                            placeholder="••••" required>
+                    </div>
+
+                    <!-- Keypad grid -->
+                    <div class="grid grid-cols-3 gap-3 max-w-xs mx-auto">
+                        {% for n in [1, 2, 3, 4, 5, 6, 7, 8, 9] %}
+                        <button type="button" onclick="appendPin('{{ n }}')" class="py-3.5 bg-slate-100 hover:bg-brand-50 hover:text-brand-700 border border-slate-200 rounded-2xl text-xl font-bold transition shadow-sm active:scale-95">
+                            {{ n }}
+                        </button>
+                        {% endfor %}
+                        <button type="button" onclick="clearPin()" class="py-3.5 bg-slate-100 hover:bg-rose-50 text-rose-600 border border-slate-200 rounded-2xl text-base font-bold transition shadow-sm active:scale-95">
+                            Clear
+                        </button>
+                        <button type="button" onclick="appendPin('0')" class="py-3.5 bg-slate-100 hover:bg-brand-50 hover:text-brand-700 border border-slate-200 rounded-2xl text-xl font-bold transition shadow-sm active:scale-95">
+                            0
+                        </button>
+                        <button type="submit" class="py-3.5 bg-brand-600 hover:bg-brand-700 text-white rounded-2xl text-base font-bold transition shadow-sm active:scale-95">
+                            <i class="fa-solid fa-arrow-right"></i>
+                        </button>
+                    </div>
+                </form>
+            </div>
+
+            <!-- TAB 3: Email & Password -->
+            <div id="tab-content-password" class="hidden space-y-5">
+                <form method="POST" action="/auth/login" class="space-y-4">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token(request) }}">
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Email Address</label>
+                        <input type="email" name="email" value="{% if demo_mode %}arun@caresync.ai{% endif %}" required placeholder="you@domain.com"
+                            class="w-full px-4 py-2.5 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-brand-500 text-sm">
+                        {% if demo_mode %}
+                        <p class="text-[11px] text-slate-400 mt-1">Default demo emails: lakshmi@caresync.ai, arun@caresync.ai, priya@caresync.ai, meena@caresync.ai</p>
+                        {% endif %}
+                    </div>
+
+                    <div>
+                        <div class="flex items-center justify-between mb-1">
+                            <label class="block text-xs font-bold text-slate-700 uppercase">Password</label>
+                            <a href="/auth/forgot-password" class="text-xs font-bold text-brand-600 hover:underline">Forgot password?</a>
+                        </div>
+                        <input type="password" name="password" value="{% if demo_mode %}password123{% endif %}" required placeholder="••••••••"
+                            class="w-full px-4 py-2.5 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-brand-500 text-sm">
+                        {% if demo_mode %}
+                        <p class="text-[11px] text-slate-400 mt-1">Default demo password: <code>password123</code></p>
+                        {% endif %}
+                    </div>
+
+                    <button type="submit" class="w-full py-3 bg-brand-600 hover:bg-brand-700 text-white font-bold rounded-xl shadow-md transition text-sm">
+                        Sign In to CareMe
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <div class="bg-slate-50 border-t border-slate-200 px-6 py-4 text-center text-xs text-slate-600">
+            Need an account? <a href="/auth/register" class="font-bold text-brand-600 hover:underline">Register your Care Circle</a>
+        </div>
+    </div>
+</div>
+
+<script>
+function switchLoginTab(tab) {
+    const tabs = ['demo', 'pin', 'password'];
+    tabs.forEach(t => {
+        const content = document.getElementById(`tab-content-${t}`);
+        const btn = document.getElementById(`tab-btn-${t}`);
+        if (content) content.classList.add('hidden');
+        if (btn) {
+            btn.classList.remove('border-brand-600', 'text-brand-700', 'bg-white');
+            btn.classList.add('border-transparent', 'text-slate-500');
+        }
+    });
+
+    const activeContent = document.getElementById(`tab-content-${tab}`);
+    const activeBtn = document.getElementById(`tab-btn-${tab}`);
+    if (activeContent) activeContent.classList.remove('hidden');
+    if (activeBtn) {
+        activeBtn.classList.remove('border-transparent', 'text-slate-500');
+        activeBtn.classList.add('border-brand-600', 'text-brand-700', 'bg-white');
+    }
+
+    if (tab === 'pin') {
+        const pinInp = document.getElementById('pin-input');
+        if (pinInp) pinInp.focus();
+    }
+}
+
+function appendPin(digit) {
+    const input = document.getElementById('pin-input');
+    if (input.value.length < 4) {
+        input.value += digit;
+    }
+    if (input.value.length === 4) {
+        document.getElementById('pin-form').submit();
+    }
+}
+
+function clearPin() {
+    document.getElementById('pin-input').value = '';
+}
+</script>
+{% endblock %}
+

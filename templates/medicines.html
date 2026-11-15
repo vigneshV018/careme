@@ -1,0 +1,169 @@
+{% extends "base.html" %}
+
+{% block title %}Medicines - CareMe{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto space-y-6">
+
+    <!-- Top Header -->
+    <div class="bg-white rounded-3xl border border-slate-200 p-6 sm:p-8 shadow-sm flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+        <div>
+            <span class="bg-teal-100 text-teal-800 text-[10px] font-black uppercase px-2.5 py-0.5 rounded-full">
+                Medication Adherence Hub
+            </span>
+            <h1 class="text-2xl sm:text-3xl font-black text-slate-900 mt-1">Prescribed Medicines & Schedules</h1>
+            <p class="text-xs sm:text-sm text-slate-500 mt-0.5">
+                Current medication regimen for <strong>{{ elder.name if elder else 'Elder' }}</strong>
+            </p>
+        </div>
+
+        {% if permissions.can_edit_medicines %}
+        <a href="/medicines/add" class="bg-gradient-to-r from-teal-600 to-brand-600 hover:from-teal-700 hover:to-brand-700 text-white font-extrabold text-sm px-5 py-3 rounded-2xl shadow-md shadow-teal-600/20 flex items-center gap-2 transition">
+            <i class="fa-solid fa-wand-magic-sparkles"></i>
+            <span>Scan / Add Medicine</span>
+        </a>
+        {% endif %}
+    </div>
+
+    <!-- Active Medicines Cards Grid -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+        {% for med in medicines %}
+        <div class="bg-white rounded-3xl border border-slate-200 p-6 shadow-sm flex flex-col justify-between">
+            <div>
+                <div class="flex items-center justify-between mb-3">
+                    <span class="w-10 h-10 rounded-2xl bg-teal-100 text-teal-700 flex items-center justify-center text-lg">
+                        <i class="fa-solid fa-pills"></i>
+                    </span>
+                    <span class="text-xs font-black uppercase bg-slate-100 text-slate-700 px-2.5 py-1 rounded-xl">
+                        {{ med.dosage }}
+                    </span>
+                </div>
+
+                <h3 class="text-xl font-black text-slate-900">{{ med.name }}</h3>
+                <p class="text-xs text-slate-600 mt-1.5 leading-relaxed bg-slate-50 p-3 rounded-xl border border-slate-100">
+                    <i class="fa-solid fa-circle-info text-brand-600 mr-1"></i>
+                    {{ med.instructions or 'Take as prescribed.' }}
+                </p>
+
+                <div class="mt-4 space-y-2 text-xs">
+                    <div class="flex items-center justify-between text-slate-600">
+                        <span class="font-bold">Daily Times:</span>
+                        <div class="flex items-center gap-1.5">
+                            {% for t in med.get_times_list() %}
+                            <span class="bg-teal-50 text-teal-800 font-extrabold px-2 py-0.5 rounded border border-teal-200">
+                                {{ t }}
+                            </span>
+                            {% endfor %}
+                        </div>
+                    </div>
+
+                    <div class="flex items-center justify-between text-slate-600">
+                        <span class="font-bold">Days:</span>
+                        <span class="text-slate-700 font-semibold">{{ ", ".join(med.get_days_list()) }}</span>
+                    </div>
+                </div>
+            </div>
+
+            {% if permissions.can_edit_medicines %}
+            <div class="mt-6 pt-4 border-t border-slate-100 flex items-center justify-between">
+                <a href="/medicines/edit/{{ med.id }}" class="text-xs font-bold text-brand-600 hover:text-brand-800">
+                    <i class="fa-solid fa-pen-to-square mr-1"></i> Edit
+                </a>
+                <form method="POST" action="/medicines/delete/{{ med.id }}" onsubmit="return confirm('Remove this medicine from care circle?');">
+                    <button type="submit" class="text-xs font-bold text-rose-500 hover:text-rose-700">
+                        <i class="fa-solid fa-trash mr-1"></i> Delete
+                    </button>
+                </form>
+            </div>
+            {% endif %}
+        </div>
+        {% endfor %}
+    </div>
+
+    <!-- 7-Day Adherence Dose Logs Table -->
+    <div class="bg-white rounded-3xl border border-slate-200 p-6 sm:p-8 shadow-sm">
+        <div class="flex items-center justify-between mb-4">
+            <div>
+                <h3 class="text-lg font-black text-slate-900">7-Day Dose History Log</h3>
+                <p class="text-xs text-slate-500">Full audit trail of scheduled, taken, and escalated doses</p>
+            </div>
+            <span class="text-xs font-bold bg-slate-100 px-3 py-1 rounded-xl text-slate-700">
+                Total Logs: {{ recent_logs|length }}
+            </span>
+        </div>
+
+        <div class="overflow-x-auto">
+            <table class="w-full text-left text-xs">
+                <thead>
+                    <tr class="border-b border-slate-200 text-slate-400 uppercase font-black tracking-wider">
+                        <th class="py-3 px-3">Medicine</th>
+                        <th class="py-3 px-3">Scheduled Time</th>
+                        <th class="py-3 px-3">Status</th>
+                        <th class="py-3 px-3">Confirmation Time</th>
+                        <th class="py-3 px-3">Escalation</th>
+                        <th class="py-3 px-3 text-right">Action</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100">
+                    {% for log in recent_logs %}
+                    <tr class="hover:bg-slate-50 transition">
+                        <td class="py-3 px-3 font-bold text-slate-800">
+                            {{ log.medicine.name }} <span class="text-slate-400 font-normal">({{ log.medicine.dosage }})</span>
+                        </td>
+                        <td class="py-3 px-3 text-slate-600 font-medium">
+                            {{ log.scheduled_at.strftime('%a %b %d • %I:%M %p') }}
+                        </td>
+                        <td class="py-3 px-3">
+                            {% if log.status == 'taken' %}
+                            <span class="bg-emerald-100 text-emerald-800 font-extrabold px-2.5 py-1 rounded-full uppercase text-[10px]">
+                                Taken
+                            </span>
+                            {% elif log.status == 'not_confirmed' %}
+                            <span class="bg-rose-100 text-rose-800 font-extrabold px-2.5 py-1 rounded-full uppercase text-[10px]">
+                                Not Confirmed (>2h)
+                            </span>
+                            {% else %}
+                            <span class="bg-amber-100 text-amber-800 font-extrabold px-2.5 py-1 rounded-full uppercase text-[10px]">
+                                Pending
+                            </span>
+                            {% endif %}
+                        </td>
+                        <td class="py-3 px-3 text-slate-600">
+                            {{ log.confirmed_at.strftime('%I:%M %p') if log.confirmed_at else '—' }}
+                        </td>
+                        <td class="py-3 px-3">
+                            {% if log.escalated_120 %}
+                            <span class="text-rose-600 font-bold text-[11px]"><i class="fa-solid fa-triangle-exclamation mr-1"></i> 120m Escalated</span>
+                            {% elif log.escalated_30 %}
+                            <span class="text-amber-600 font-bold text-[11px]"><i class="fa-solid fa-bell mr-1"></i> 30m Reminded</span>
+                            {% else %}
+                            <span class="text-slate-400">—</span>
+                            {% endif %}
+                        </td>
+                        <td class="py-3 px-3 text-right">
+                            {% if log.status == 'taken' %}
+                            <form method="POST" action="/medicines/dose/{{ log.id }}/undo">
+                                <input type="hidden" name="redirect_to" value="/medicines">
+                                <button type="submit" class="text-slate-400 hover:text-slate-600 text-[11px] font-bold underline">
+                                    Undo
+                                </button>
+                            </form>
+                            {% else %}
+                            <form method="POST" action="/medicines/dose/{{ log.id }}/take">
+                                <input type="hidden" name="redirect_to" value="/medicines">
+                                <button type="submit" class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-2.5 py-1 rounded-lg text-[11px] transition">
+                                    Mark Taken
+                                </button>
+                            </form>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+</div>
+{% endblock %}
+

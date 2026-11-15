@@ -1,0 +1,78 @@
+{% extends "base.html" %}
+
+{% block title %}{{ 'Edit' if action == 'edit' else 'Schedule' }} Appointment - CareMe{% endblock %}
+
+{% block content %}
+<div class="max-w-2xl mx-auto py-4">
+    <div class="bg-white rounded-3xl border border-slate-200 p-6 sm:p-8 shadow-sm">
+        <div class="flex items-center justify-between mb-6 pb-4 border-b border-slate-100">
+            <div>
+                <h1 class="text-xl sm:text-2xl font-black text-slate-900">
+                    {{ 'Edit Appointment' if action == 'edit' else 'Schedule Doctor Appointment' }}
+                </h1>
+                <p class="text-xs text-slate-500">Coordinate clinic visits and reminders for {{ circle.elder.name }}</p>
+            </div>
+            <a href="/appointments" class="text-xs font-bold text-slate-500 hover:text-slate-800">
+                Cancel
+            </a>
+        </div>
+
+        <form method="POST" action="{{ '/appointments/edit/' + appointment.id|string if action == 'edit' else '/appointments/add' }}" class="space-y-4">
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Doctor Name</label>
+                    <input type="text" name="doctor" required value="{{ appointment.doctor if appointment else 'Dr. ' }}" placeholder="e.g. Dr. Ramesh"
+                        class="w-full px-4 py-2.5 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-brand-500 text-sm">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Specialty</label>
+                    <input type="text" name="specialty" required value="{{ appointment.specialty if appointment else '' }}" placeholder="e.g. Cardiologist, Neurologist"
+                        class="w-full px-4 py-2.5 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-brand-500 text-sm">
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Hospital / Clinic</label>
+                    <input type="text" name="hospital" required value="{{ appointment.hospital if appointment else '' }}" placeholder="e.g. KG Hospital, Coimbatore"
+                        class="w-full px-4 py-2.5 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-brand-500 text-sm">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Phone Number</label>
+                    <input type="tel" name="phone" value="{{ appointment.phone if appointment else '+91 ' }}" placeholder="+91 422 2221212"
+                        class="w-full px-4 py-2.5 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-brand-500 text-sm">
+                </div>
+            </div>
+
+            <div>
+                <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Hospital Address</label>
+                <input type="text" name="address" value="{{ appointment.address if appointment else '' }}" placeholder="e.g. Arts College Road, Coimbatore - 641018"
+                    class="w-full px-4 py-2.5 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-brand-500 text-sm">
+            </div>
+
+            <div>
+                <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Appointment Date & Time</label>
+                <input type="datetime-local" name="datetime_str" required 
+                    value="{{ appointment.datetime.strftime('%Y-%m-%dT%H:%M') if appointment else '' }}"
+                    class="w-full px-4 py-2.5 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-brand-500 text-sm">
+            </div>
+
+            <div>
+                <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Preparation & Clinical Notes</label>
+                <textarea name="notes" rows="3" placeholder="e.g. Bring fasting sugar report and latest ECG charts."
+                    class="w-full px-4 py-2.5 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-brand-500 text-sm">{{ appointment.notes if appointment else '' }}</textarea>
+            </div>
+
+            <div class="pt-4 flex items-center justify-end gap-3">
+                <a href="/appointments" class="px-5 py-2.5 border border-slate-200 text-slate-600 font-bold rounded-xl text-sm hover:bg-slate-50 transition">
+                    Cancel
+                </a>
+                <button type="submit" class="px-6 py-2.5 bg-brand-600 hover:bg-brand-700 text-white font-bold rounded-xl text-sm shadow-sm transition">
+                    Save Appointment
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+

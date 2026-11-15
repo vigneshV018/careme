@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+
+{% block title %}Activity Log - CareMe{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto space-y-6">
+
+    <div class="bg-white rounded-3xl border border-slate-200 p-6 sm:p-8 shadow-sm">
+        <div class="flex items-center justify-between mb-6 pb-4 border-b border-slate-100">
+            <div>
+                <span class="bg-slate-100 text-slate-800 text-[10px] font-black uppercase px-2.5 py-0.5 rounded-full">
+                    Transparency & Audit Trail
+                </span>
+                <h1 class="text-2xl font-black text-slate-900 mt-1">Care Circle Activity Timeline</h1>
+                <p class="text-xs text-slate-500">Every medication taken, appointment created, and alert triggered in {{ circle.elder.name }}'s circle</p>
+            </div>
+            <span class="text-xs font-bold text-slate-500">{{ activities|length }} Recorded Events</span>
+        </div>
+
+        <div class="space-y-6">
+            {% if activities %}
+                {% for act in activities %}
+                <div class="flex items-start gap-4 text-xs">
+                    <div class="w-10 h-10 rounded-2xl bg-brand-50 border border-brand-200 flex items-center justify-center text-brand-600 font-bold flex-shrink-0 text-sm shadow-sm">
+                        <i class="fa-solid fa-clock-rotate-left"></i>
+                    </div>
+                    <div class="flex-1 bg-slate-50 p-4 rounded-2xl border border-slate-100">
+                        <div class="flex items-center justify-between mb-1">
+                            <span class="font-bold text-slate-900 text-sm">
+                                {{ act.user.name if act.user else 'System' }}
+                            </span>
+                            <span class="text-[11px] text-slate-400 font-medium">
+                                {{ act.timestamp.strftime('%a, %b %d • %I:%M %p') }}
+                            </span>
+                        </div>
+                        <p class="text-slate-700 text-xs font-medium leading-relaxed">{{ act.action }}</p>
+                    </div>
+                </div>
+                {% endfor %}
+            {% else %}
+                <p class="text-center text-slate-400 py-8">No activities recorded yet.</p>
+            {% endif %}
+        </div>
+    </div>
+
+</div>
+{% endblock %}
+

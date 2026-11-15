@@ -1,0 +1,359 @@
+{% extends "base.html" %}
+
+{% block title %}CareMe - Demo Engine & Email Simulator{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto space-y-6">
+
+    <!-- Top Demo Header -->
+    <div class="bg-gradient-to-r from-slate-900 via-indigo-950 to-brand-900 text-white rounded-3xl p-6 sm:p-8 shadow-xl flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
+        <div>
+            <div class="flex items-center gap-2">
+                <span class="bg-teal-400 text-slate-900 text-[10px] font-black uppercase px-2.5 py-0.5 rounded-full tracking-wider">
+                    Demo Mode Enabled
+                </span>
+                <span class="bg-white/10 text-slate-200 text-[10px] font-bold px-2 py-0.5 rounded-full">
+                    DEMO_MODE=true
+                </span>
+            </div>
+            <h1 class="text-2xl sm:text-3xl font-black mt-2">CareMe Simulation & Email Engine</h1>
+            <p class="text-slate-300 text-xs sm:text-sm mt-1 max-w-2xl">
+                Inspect escalation triggers, verify real Gmail SMTP delivery, and test the 30-minute check-in and 2-hour critical escalation workflows.
+            </p>
+        </div>
+
+        <!-- SMTP Delivery Mode Badge -->
+        <div class="bg-white/10 backdrop-blur-md rounded-2xl p-4 border border-white/20 text-xs flex-shrink-0">
+            <span class="text-[10px] font-bold uppercase tracking-wider text-slate-300">Delivery Transport</span>
+            <div class="flex items-center gap-2 mt-1">
+                <span class="w-2.5 h-2.5 rounded-full {% if smtp_status.is_active %}bg-emerald-400 animate-pulse{% else %}bg-amber-400{% endif %}"></span>
+                <p class="font-extrabold text-sm text-white">{{ smtp_status.mode_label }}</p>
+            </div>
+            <p class="text-[11px] text-slate-300 mt-0.5 max-w-xs">
+                {% if smtp_status.is_active %}
+                Connected via Gmail SMTP: <span class="font-bold text-emerald-300">{{ smtp_status.user }}</span>
+                {% else %}
+                Console Mode: <span class="text-amber-200 font-medium">SMTP_USER or SMTP_PASS not set in .env (emails logged to terminal)</span>
+                {% endif %}
+            </p>
+        </div>
+    </div>
+
+    <!-- Last Action Feedback Card -->
+    {% if last_action and last_action.is_error %}
+    <!-- Error Feedback Card in Red (Requirement 4) -->
+    <div class="bg-red-50 rounded-3xl border-2 border-red-500 p-6 shadow-lg animate-fadeIn text-red-950">
+        <div class="flex items-center justify-between pb-3 border-b border-red-200 mb-4">
+            <div class="flex items-center gap-2.5">
+                <span class="w-8 h-8 rounded-xl bg-red-100 text-red-700 flex items-center justify-center font-bold text-sm">
+                    <i class="fa-solid fa-triangle-exclamation"></i>
+                </span>
+                <div>
+                    <h3 class="font-black text-red-950 text-base">{{ last_action.title }}</h3>
+                    <p class="text-xs text-red-600">Attempted at {{ last_action.timestamp }}</p>
+                </div>
+            </div>
+            <span class="bg-red-100 text-red-800 text-xs font-bold px-3 py-1 rounded-full border border-red-300">
+                Email Delivery Failed
+            </span>
+        </div>
+
+        <div class="bg-white border-2 border-red-300 rounded-2xl p-4 mb-3 text-red-900">
+            <p class="text-sm font-bold flex items-center gap-2">
+                <i class="fa-solid fa-circle-xmark text-red-600 text-base flex-shrink-0"></i>
+                <span>{{ last_action.error_message }}</span>
+            </p>
+            {% if last_action.error %}
+            <p class="mt-2 text-xs font-mono bg-red-50 text-red-800 p-2.5 rounded-xl border border-red-200 overflow-x-auto">
+                {{ last_action.error }}
+            </p>
+            {% endif %}
+        </div>
+        <p class="text-xs text-slate-600">
+            Target Address: <strong>{{ last_action.target }}</strong> &bull; Transport: Gmail SMTP (smtp.gmail.com:587)
+        </p>
+    </div>
+    {% elif last_action %}
+    <!-- Success / Normal Feedback Card -->
+    <div class="bg-white rounded-3xl border-2 {% if last_action.mode == 'real_smtp' %}border-emerald-500{% else %}border-brand-500{% endif %} p-6 shadow-lg animate-fadeIn">
+        <div class="flex items-center justify-between pb-3 border-b border-slate-100 mb-4">
+            <div class="flex items-center gap-2.5">
+                <span class="w-8 h-8 rounded-xl {% if last_action.mode == 'real_smtp' %}bg-emerald-100 text-emerald-700{% else %}bg-brand-100 text-brand-700{% endif %} flex items-center justify-center font-bold text-sm">
+                    <i class="fa-solid {% if last_action.mode == 'real_smtp' %}fa-circle-check{% else %}fa-paper-plane{% endif %}"></i>
+                </span>
+                <div>
+                    <h3 class="font-black text-slate-900 text-base">{{ last_action.title }}</h3>
+                    <p class="text-xs text-slate-500">Executed at {{ last_action.timestamp }}</p>
+                </div>
+            </div>
+            <span class="{% if last_action.mode == 'real_smtp' %}bg-emerald-50 text-emerald-800 border-emerald-200{% else %}bg-brand-50 text-brand-800 border-brand-200{% endif %} text-xs font-bold px-3 py-1 rounded-full border">
+                {% if last_action.mode == 'real_smtp' %}Delivered via Gmail SMTP{% elif last_action.mode == 'console_logged' %}Console Mode{% else %}Action Completed{% endif %}
+            </span>
+        </div>
+
+        <p class="text-xs sm:text-sm text-slate-700 mb-2">{{ last_action.description|safe }}</p>
+        {% if last_action.status_text %}
+        <p class="text-xs text-slate-600 font-medium mb-3"><i class="fa-solid fa-info-circle mr-1 text-brand-600"></i> {{ last_action.status_text }}</p>
+        {% endif %}
+
+        {% if last_action.note %}
+        <div class="bg-amber-50 border border-amber-200 text-amber-900 rounded-xl p-3 text-xs mb-4 font-medium">
+            <i class="fa-solid fa-circle-info mr-1 text-amber-600"></i> {{ last_action.note }}
+        </div>
+        {% endif %}
+
+        {% if last_action.events %}
+        <div class="space-y-2 mt-2">
+            <p class="text-xs font-bold text-slate-400 uppercase tracking-wider">Outbound Notifications & Emails Triggered:</p>
+            <div class="grid grid-cols-1 gap-2.5">
+                {% for item in last_action.events %}
+                <div class="p-3 rounded-2xl bg-slate-50 border border-slate-200 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 text-xs">
+                    <div>
+                        <span class="font-extrabold text-slate-900">{{ item.recipient }}</span>
+                        <code class="ml-1 text-slate-500 bg-white px-1.5 py-0.5 rounded border border-slate-200">{{ item.email }}</code>
+                        <p class="text-slate-600 mt-1"><strong>Subject:</strong> {{ item.subject }}</p>
+                        <p class="text-slate-500 italic mt-0.5">"{{ item.message }}"</p>
+                    </div>
+                    <span class="px-2.5 py-1 rounded-full font-bold text-[10px] uppercase {% if item.mode == 'real_smtp' %}bg-emerald-100 text-emerald-800{% else %}bg-slate-200 text-slate-700{% endif %}">
+                        {{ 'Gmail SMTP' if item.mode == 'real_smtp' else 'Console Logged' }}
+                    </span>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+    </div>
+    {% endif %}
+
+    <!-- 4 Action Controls Grid -->
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+
+        <!-- Action 1: Send Test Email Now -->
+        <div class="bg-white rounded-3xl border border-slate-200 p-6 shadow-sm flex flex-col justify-between">
+            <div>
+                <div class="flex items-center gap-3 mb-3">
+                    <span class="w-10 h-10 rounded-2xl bg-teal-100 text-teal-700 flex items-center justify-center text-lg">
+                        <i class="fa-solid fa-envelope-open-text"></i>
+                    </span>
+                    <div>
+                        <h2 class="text-lg font-black text-slate-900">1. Send Test Email Now</h2>
+                        <p class="text-xs text-slate-500">Test real delivery to any address</p>
+                    </div>
+                </div>
+                <p class="text-xs text-slate-600 mb-4 leading-relaxed">
+                    Dispatches a live HTML email formatted with CareMe branding (Teal <code class="text-brand-700">#14B8A6</code> and Navy <code class="text-slate-900">#0F2A4A</code>). Also creates an in-app notification.
+                </p>
+
+                <form method="POST" action="/demo/send-test-email" class="space-y-3">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token(request) }}">
+                    <div>
+                        <label class="block text-[11px] font-bold text-slate-700 uppercase mb-1">Recipient Address (Enter Your Email)</label>
+                        <input type="email" name="target_email" required value="{{ suggested_email }}" placeholder="your-email@example.com"
+                            class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-brand-500 text-xs font-semibold">
+                    </div>
+
+                    <div>
+                        <label class="block text-[11px] font-bold text-slate-700 uppercase mb-1">Subject (Optional)</label>
+                        <input type="text" name="custom_subject" value="CareMe: Live System Test Email"
+                            class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-brand-500 text-xs">
+                    </div>
+
+                    <div>
+                        <label class="block text-[11px] font-bold text-slate-700 uppercase mb-1">Message Note (Optional)</label>
+                        <textarea name="custom_note" rows="2" class="w-full px-3.5 py-2 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-brand-500 text-xs">CareMe live verification probe. Delivery, notifications, and escalation pipelines operating normally.</textarea>
+                    </div>
+
+                    <button type="submit" class="w-full py-3 bg-brand-600 hover:bg-brand-700 active:scale-95 text-white font-extrabold rounded-xl shadow-md text-xs transition flex items-center justify-center gap-2">
+                        <i class="fa-solid fa-paper-plane"></i>
+                        <span>Send Test Email Now</span>
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Action 2: Simulate 30-Minute Unconfirmed Dose -->
+        <div class="bg-white rounded-3xl border border-slate-200 p-6 shadow-sm flex flex-col justify-between">
+            <div>
+                <div class="flex items-center gap-3 mb-3">
+                    <span class="w-10 h-10 rounded-2xl bg-amber-100 text-amber-800 flex items-center justify-center text-lg">
+                        <i class="fa-solid fa-hourglass-half"></i>
+                    </span>
+                    <div>
+                        <h2 class="text-lg font-black text-slate-900">2. Simulate Unconfirmed Dose (30 min)</h2>
+                        <p class="text-xs text-slate-500">Threshold: ESCALATE_1_MIN = {{ escalate_1_min }} min</p>
+                    </div>
+                </div>
+
+                <div class="bg-amber-50/70 border border-amber-200 rounded-2xl p-4 text-xs text-amber-950 space-y-2 mb-4">
+                    <p class="font-bold flex items-center gap-1.5">
+                        <i class="fa-solid fa-shield-halved text-amber-600"></i>
+                        <span>Escalation Rule Specification:</span>
+                    </p>
+                    <ul class="list-disc list-inside space-y-1 text-slate-700">
+                        <li>Simulates Metformin dose scheduled 32 minutes ago remaining unconfirmed.</li>
+                        <li>Emails <strong>ONLY members with <code>can_receive_alerts</code></strong> (Arun & Priya).</li>
+                        <li>Exact required message: <em>"<span class="font-semibold text-slate-900">Metformin was not confirmed at 08:00 AM. This doesn't always mean it was missed. Please check in.</span>"</em></li>
+                        <li><strong>Never says "missed for sure"</strong> to prevent false panic.</li>
+                    </ul>
+                </div>
+
+                <form method="POST" action="/demo/simulate-30min">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token(request) }}">
+                    <button type="submit" class="w-full py-3.5 bg-amber-500 hover:bg-amber-600 active:scale-95 text-white font-extrabold rounded-xl shadow-md text-xs transition flex items-center justify-center gap-2">
+                        <i class="fa-solid fa-triangle-exclamation"></i>
+                        <span>Simulate Unconfirmed Dose (30 min)</span>
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Action 3: Trigger 2-Hour Escalation -->
+        <div class="bg-white rounded-3xl border border-slate-200 p-6 shadow-sm flex flex-col justify-between">
+            <div>
+                <div class="flex items-center gap-3 mb-3">
+                    <span class="w-10 h-10 rounded-2xl bg-rose-100 text-rose-700 flex items-center justify-center text-lg">
+                        <i class="fa-solid fa-bell"></i>
+                    </span>
+                    <div>
+                        <h2 class="text-lg font-black text-slate-900">3. Trigger 2-Hour Escalation</h2>
+                        <p class="text-xs text-slate-500">Threshold: ESCALATE_2_MIN = {{ escalate_2_min }} min</p>
+                    </div>
+                </div>
+
+                <div class="bg-rose-50/70 border border-rose-200 rounded-2xl p-4 text-xs text-rose-950 space-y-2 mb-4">
+                    <p class="font-bold flex items-center gap-1.5">
+                        <i class="fa-solid fa-triangle-exclamation text-rose-600"></i>
+                        <span>Critical Escalation Rule:</span>
+                    </p>
+                    <ul class="list-disc list-inside space-y-1 text-slate-700">
+                        <li>Simulates dose remaining unconfirmed past 120 minutes.</li>
+                        <li>Automatically marks status from <code>pending</code> &rarr; <code>not_confirmed</code>.</li>
+                        <li>Sets <code>escalated_120 = True</code>.</li>
+                        <li>Broadcasts critical notification to the <strong>WHOLE care circle including caregivers</strong> (Lakshmi, Arun, Priya, Meena).</li>
+                    </ul>
+                </div>
+
+                <form method="POST" action="/demo/simulate-120min">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token(request) }}">
+                    <button type="submit" class="w-full py-3.5 bg-rose-600 hover:bg-rose-700 active:scale-95 text-white font-extrabold rounded-xl shadow-md text-xs transition flex items-center justify-center gap-2">
+                        <i class="fa-solid fa-bullhorn"></i>
+                        <span>Trigger 2-Hour Escalation</span>
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Action 4: Reset Demo Data -->
+        <div class="bg-white rounded-3xl border border-slate-200 p-6 shadow-sm flex flex-col justify-between">
+            <div>
+                <div class="flex items-center gap-3 mb-3">
+                    <span class="w-10 h-10 rounded-2xl bg-indigo-100 text-indigo-700 flex items-center justify-center text-lg">
+                        <i class="fa-solid fa-arrows-rotate"></i>
+                    </span>
+                    <div>
+                        <h2 class="text-lg font-black text-slate-900">4. Reset Demo Data</h2>
+                        <p class="text-xs text-slate-500">Restore fresh hackathon baseline</p>
+                    </div>
+                </div>
+
+                <p class="text-xs text-slate-600 mb-4 leading-relaxed">
+                    Resets SQLite database tables and restores Lakshmi (PIN 1234), Arun, Priya, Meena, circle passcode 482915, Metformin, Amlodipine, Atorvastatin, 86% adherence, and Dr. Ramesh appointment.
+                </p>
+
+                <form method="POST" action="/demo/reset-data" onsubmit="return confirm('Reset all demo data to pristine initial state?');">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token(request) }}">
+                    <button type="submit" class="w-full py-3.5 bg-slate-800 hover:bg-slate-900 active:scale-95 text-white font-extrabold rounded-xl shadow-md text-xs transition flex items-center justify-center gap-2">
+                        <i class="fa-solid fa-rotate-left"></i>
+                        <span>Reset Demo Data</span>
+                    </button>
+                </form>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Recent Outbound Emails History Table -->
+    <div class="bg-white rounded-3xl border border-slate-200 p-6 sm:p-8 shadow-sm">
+        <div class="flex items-center justify-between mb-4">
+            <div>
+                <h3 class="text-lg font-black text-slate-900">Outbound Email Engine Log</h3>
+                <p class="text-xs text-slate-500">Live record of emails dispatched or simulated during this session</p>
+            </div>
+            <span class="text-xs font-bold bg-slate-100 text-slate-700 px-3 py-1 rounded-xl">
+                {{ recent_emails|length }} Emails Dispatched
+            </span>
+        </div>
+
+        {% if recent_emails %}
+        <div class="overflow-x-auto">
+            <table class="w-full text-left text-xs">
+                <thead>
+                    <tr class="border-b border-slate-200 text-slate-400 uppercase font-black">
+                        <th class="py-3 px-3">Time</th>
+                        <th class="py-3 px-3">Recipient</th>
+                        <th class="py-3 px-3">Subject</th>
+                        <th class="py-3 px-3">Message</th>
+                        <th class="py-3 px-3">Delivery Mode</th>
+                        <th class="py-3 px-3 text-right">HTML Preview</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100">
+                    {% for em in recent_emails %}
+                    <tr class="hover:bg-slate-50 transition">
+                        <td class="py-3 px-3 font-medium text-slate-400 whitespace-nowrap">{{ em.timestamp }}</td>
+                        <td class="py-3 px-3 font-bold text-slate-800">{{ em.to }}</td>
+                        <td class="py-3 px-3 font-semibold text-slate-700">{{ em.subject }}</td>
+                        <td class="py-3 px-3 text-slate-500 max-w-xs truncate">{{ em.message }}</td>
+                        <td class="py-3 px-3">
+                            <span class="px-2 py-0.5 rounded-full font-bold text-[10px] uppercase {% if em.mode == 'real_smtp' %}bg-emerald-100 text-emerald-800{% else %}bg-slate-200 text-slate-700{% endif %}">
+                                {{ 'Gmail SMTP' if em.mode == 'real_smtp' else 'Console Logged' }}
+                            </span>
+                        </td>
+                        <td class="py-3 px-3 text-right">
+                            <button type="button" onclick="previewEmailModal({{ loop.index0 }})" class="text-brand-600 hover:text-brand-800 font-bold underline">
+                                Preview
+                            </button>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <p class="text-center text-slate-400 py-6 text-xs">No emails dispatched yet in this session.</p>
+        {% endif %}
+    </div>
+
+</div>
+
+<!-- Modal for HTML Email Preview -->
+<div id="email-preview-modal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-3xl max-w-2xl w-full max-h-[90vh] overflow-hidden flex flex-col shadow-2xl">
+        <div class="px-6 py-4 border-b border-slate-200 flex items-center justify-between bg-slate-50">
+            <h4 class="font-extrabold text-sm text-slate-800">CareMe HTML Email Preview</h4>
+            <button onclick="closePreviewModal()" class="text-slate-400 hover:text-slate-600 text-lg">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+        </div>
+        <div class="p-4 overflow-y-auto flex-1 bg-slate-100">
+            <iframe id="preview-iframe" class="w-full h-[500px] border border-slate-200 rounded-2xl bg-white shadow-sm"></iframe>
+        </div>
+    </div>
+</div>
+
+<script>
+const emailsData = {{ recent_emails | tojson }};
+
+function previewEmailModal(idx) {
+    const em = emailsData[idx];
+    if (!em) return;
+    const iframe = document.getElementById('preview-iframe');
+    iframe.srcdoc = em.html_preview || '<p>No preview available</p>';
+    document.getElementById('email-preview-modal').classList.remove('hidden');
+}
+
+function closePreviewModal() {
+    document.getElementById('email-preview-modal').classList.add('hidden');
+}
+</script>
+{% endblock %}

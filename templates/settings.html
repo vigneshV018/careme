@@ -1,0 +1,168 @@
+{% extends "base.html" %}
+
+{% block title %}Settings & Privacy - CareMe{% endblock %}
+
+{% block content %}
+<div class="max-w-3xl mx-auto py-6 space-y-6">
+
+    <!-- Top Header -->
+    <div class="flex items-center justify-between">
+        <div>
+            <div class="flex items-center gap-2">
+                <span class="text-xs font-bold text-slate-400 uppercase tracking-wider">Account & Safety</span>
+                <span class="bg-teal-100 text-teal-800 text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-full">Settings</span>
+            </div>
+            <h1 class="text-2xl sm:text-3xl font-black text-slate-900 mt-1">
+                Account Settings & Data Privacy
+            </h1>
+            <p class="text-xs sm:text-sm text-slate-500">
+                Manage your profile information and data ownership rights
+            </p>
+        </div>
+        <a href="/dashboard" class="px-4 py-2 border border-slate-200 text-slate-600 hover:text-slate-900 font-bold rounded-xl text-xs hover:bg-slate-50 transition">
+            <i class="fa-solid fa-arrow-left mr-1"></i> Back to Home
+        </a>
+    </div>
+
+    {% if success %}
+    <div class="bg-emerald-50 border border-emerald-200 text-emerald-900 text-xs font-semibold px-4 py-3 rounded-2xl flex items-center gap-2">
+        <i class="fa-solid fa-circle-check text-emerald-600"></i>
+        <span>{{ success }}</span>
+    </div>
+    {% endif %}
+
+    {% if error %}
+    <div class="bg-rose-50 border border-rose-200 text-rose-800 text-xs font-semibold px-4 py-3 rounded-2xl flex items-center gap-2">
+        <i class="fa-solid fa-triangle-exclamation text-rose-500"></i>
+        <span>{{ error }}</span>
+    </div>
+    {% endif %}
+
+    <!-- Profile Card -->
+    <div class="bg-white rounded-3xl border border-slate-200 p-6 sm:p-8 shadow-sm space-y-5">
+        <div class="flex items-center justify-between pb-3 border-b border-slate-100">
+            <div class="flex items-center gap-3">
+                <div class="w-12 h-12 rounded-2xl overflow-hidden bg-slate-100 border border-slate-200">
+                    <img src="{{ user.photo_url or 'https://api.dicebear.com/7.x/personas/svg?seed=' + user.name }}" class="w-full h-full object-cover">
+                </div>
+                <div>
+                    <h2 class="text-base font-extrabold text-slate-900">{{ user.name }}</h2>
+                    <p class="text-xs text-slate-500">{{ user.email }} • <span class="capitalize font-bold text-brand-600">{{ user.role }}</span></p>
+                </div>
+            </div>
+            <span class="bg-slate-100 text-slate-700 text-xs font-bold px-3 py-1 rounded-full">
+                Active Member
+            </span>
+        </div>
+
+        <form method="POST" action="/settings/profile" class="space-y-4">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token(request) }}">
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Your Full Name</label>
+                    <input type="text" name="name" value="{{ user.name }}" required
+                        class="w-full px-4 py-2.5 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-brand-500 text-sm">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Email Address (Read-only)</label>
+                    <input type="email" value="{{ user.email }}" disabled
+                        class="w-full px-4 py-2.5 rounded-xl border border-slate-200 bg-slate-50 text-slate-500 text-sm cursor-not-allowed">
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Phone Number</label>
+                    <input type="tel" name="phone" value="{{ user.phone or '' }}" placeholder="+91 98765 43210"
+                        class="w-full px-4 py-2.5 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-brand-500 text-sm">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 uppercase mb-1">City</label>
+                    <input type="text" name="city" value="{{ user.city or '' }}" placeholder="e.g. Coimbatore"
+                        class="w-full px-4 py-2.5 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-brand-500 text-sm">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Age</label>
+                    <input type="number" name="age" value="{{ user.age or '' }}" placeholder="e.g. 75"
+                        class="w-full px-4 py-2.5 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-brand-500 text-sm">
+                </div>
+            </div>
+
+            <div class="pt-2 flex justify-end">
+                <button type="submit" class="px-6 py-2.5 rounded-xl bg-brand-600 hover:bg-brand-700 text-white font-bold text-xs shadow-sm transition">
+                    Update Profile
+                </button>
+            </div>
+        </form>
+    </div>
+
+    <!-- Danger Zone: Account & Data Deletion -->
+    <div class="bg-rose-50/60 rounded-3xl border-2 border-rose-200 p-6 sm:p-8 shadow-sm space-y-4">
+        <div class="flex items-start gap-4">
+            <div class="w-12 h-12 rounded-2xl bg-rose-500 text-white flex items-center justify-center text-xl flex-shrink-0 shadow-sm">
+                <i class="fa-solid fa-triangle-exclamation"></i>
+            </div>
+            <div class="space-y-1">
+                <h3 class="text-base font-black text-rose-950 uppercase tracking-wide">
+                    Account & Personal Data Deletion
+                </h3>
+                <p class="text-xs text-rose-800 leading-relaxed">
+                    Under CareMe privacy guarantees, you possess the full right to delete your profile and personal records. Deleting your account will permanently remove your login credentials, memberships, historical dose records, and circle access.
+                </p>
+                <p class="text-[11px] font-bold text-rose-700 mt-1">
+                    <i class="fa-solid fa-skull mr-1"></i> This action is instantaneous and cannot be undone.
+                </p>
+            </div>
+        </div>
+
+        <div class="pt-2 border-t border-rose-200 flex flex-col sm:flex-row items-center justify-between gap-3">
+            <span class="text-xs text-rose-800 font-semibold">
+                Require immediate removal of all records?
+            </span>
+            <button type="button" onclick="confirmAccountDeletion()"
+                class="w-full sm:w-auto px-5 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-700 active:scale-95 text-white font-black text-xs shadow-md transition flex items-center justify-center gap-2">
+                <i class="fa-solid fa-trash-can"></i>
+                <span>Delete My Account & Personal Data</span>
+            </button>
+        </div>
+    </div>
+
+</div>
+
+<!-- Modal for Deletion Confirmation -->
+<div id="delete-modal" class="fixed inset-0 bg-slate-900/70 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-3xl max-w-md w-full p-6 sm:p-8 space-y-5 shadow-2xl border border-rose-200 text-center">
+        <div class="w-16 h-16 rounded-3xl bg-rose-100 text-rose-600 flex items-center justify-center text-3xl mx-auto">
+            <i class="fa-solid fa-trash-can"></i>
+        </div>
+        <div class="space-y-1.5">
+            <h3 class="text-xl font-black text-slate-900">Are you absolutely sure?</h3>
+            <p class="text-xs text-slate-500 leading-relaxed">
+                This will permanently delete your account (<strong>{{ user.email }}</strong>), your care circle memberships, and all your recorded medical activity from the database.
+            </p>
+        </div>
+
+        <form method="POST" action="/settings/delete-account">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token(request) }}">
+            <div class="flex items-center gap-3 pt-2">
+                <button type="button" onclick="document.getElementById('delete-modal').classList.add('hidden')"
+                    class="flex-1 py-3 border border-slate-300 text-slate-700 font-bold rounded-xl text-xs hover:bg-slate-50 transition">
+                    Cancel
+                </button>
+                <button type="submit"
+                    class="flex-1 py-3 bg-rose-600 hover:bg-rose-700 text-white font-extrabold rounded-xl text-xs shadow-md transition">
+                    Yes, Delete Everything
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+function confirmAccountDeletion() {
+    document.getElementById('delete-modal').classList.remove('hidden');
+}
+</script>
+{% endblock %}
+

@@ -1,0 +1,448 @@
+{% extends "base.html" %}
+
+{% block title %}Care Circle - CareMe{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto space-y-6">
+
+    <!-- Circle Passcode Banner & Actions -->
+    <div class="bg-gradient-to-r from-teal-800 via-teal-700 to-brand-900 text-white rounded-3xl p-6 sm:p-8 shadow-xl flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
+        <div>
+            <div class="flex items-center gap-2">
+                <span class="bg-white/20 text-white text-[10px] font-black uppercase px-2.5 py-0.5 rounded-full">
+                    Care Circle Security Passcode
+                </span>
+                <span class="bg-emerald-500/30 text-emerald-200 text-[10px] font-black uppercase px-2 py-0.5 rounded-full">
+                    6-Digit Guard
+                </span>
+            </div>
+            <h1 class="text-2xl sm:text-3xl font-black mt-2">
+                {{ circle.elder.name }}'s Care Circle
+            </h1>
+            <p class="text-teal-100 text-xs sm:text-sm mt-1 max-w-xl">
+                Share this passcode with close family or caregivers. When they join, {{ circle.elder.name }} will receive an alert to approve or decline access before any health data is shared.
+            </p>
+        </div>
+
+        <div class="bg-white text-slate-900 rounded-3xl p-5 shadow-2xl flex flex-col sm:flex-row items-center gap-4 border border-teal-200 w-full md:w-auto">
+            <div class="text-center sm:text-left">
+                <span class="text-[10px] uppercase font-bold text-slate-400 block">Circle Passcode</span>
+                <p class="text-3xl font-black tracking-widest text-brand-700 font-mono" id="passcode-display">{{ circle.passcode }}</p>
+            </div>
+
+            <div class="flex items-center gap-2 w-full sm:w-auto">
+                <!-- Share & Copy Button -->
+                <button type="button" onclick="copyPasscode('{{ circle.passcode }}', '{{ circle.elder.name }}', this)"
+                    class="flex-1 sm:flex-initial bg-brand-50 hover:bg-brand-100 text-brand-800 font-extrabold px-4 py-2.5 rounded-xl text-xs flex items-center justify-center gap-1.5 border border-brand-200 shadow-sm transition">
+                    <i class="fa-regular fa-copy"></i>
+                    <span>Share & Copy</span>
+                </button>
+
+                <!-- Regenerate Passcode Button (Elder only) -->
+                {% if user.role == 'elder' or permissions.is_owner %}
+                <form method="POST" action="/circle/regenerate-passcode" class="inline">
+                    <button type="submit" onclick="return confirm('Regenerate Passcode? Existing members keep access, but any new members must use the new 6-digit code.')"
+                        class="bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold px-3 py-2.5 rounded-xl text-xs flex items-center justify-center gap-1.5 transition" title="Generate a fresh 6-digit code">
+                        <i class="fa-solid fa-arrows-rotate"></i>
+                        <span>Regenerate</span>
+                    </button>
+                </form>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Pending Join Requests (If Any) -->
+    {% if pending_members and (user.role == 'elder' or permissions.is_owner) %}
+    <div class="bg-amber-50 border-2 border-amber-300 rounded-3xl p-6 sm:p-8 shadow-md space-y-4">
+        <div class="flex items-center gap-3">
+            <span class="w-10 h-10 rounded-2xl bg-amber-500 text-white flex items-center justify-center text-lg shadow-sm">
+                <i class="fa-solid fa-user-clock"></i>
+            </span>
+            <div>
+                <h3 class="text-lg font-black text-amber-950">Pending Care Circle Join Requests ({{ pending_members|length }})</h3>
+                <p class="text-xs text-amber-800">These individuals joined using the Care Passcode and require approval.</p>
+            </div>
+        </div>
+
+        <div class="space-y-3">
+            {% for req in pending_members %}
+            <div class="bg-white p-4 rounded-2xl border border-amber-200 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-sm">
+                <div class="flex items-center gap-3">
+                    <div class="w-12 h-12 rounded-xl overflow-hidden bg-slate-100 border border-amber-300 flex-shrink-0">
+                        <img src="{{ req.user.photo_url or 'https://api.dicebear.com/7.x/personas/svg?seed=' + req.user.name }}" alt="{{ req.user.name }}" class="w-full h-full object-cover">
+                    </div>
+                    <div>
+                        <h4 class="font-extrabold text-slate-900 text-sm">{{ req.user.name }}</h4>
+                        <p class="text-xs text-slate-500">{{ req.user.email }} • Role: <strong class="text-purple-700">{{ req.relationship }}</strong></p>
+                    </div>
+                </div>
+
+                <div class="flex items-center gap-2 w-full sm:w-auto">
+                    <form method="POST" action="/circle/member/{{ req.id }}/approve" class="flex-1 sm:flex-initial">
+                        <button type="submit" class="w-full sm:w-auto bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs px-4 py-2.5 rounded-xl shadow transition">
+                            <i class="fa-solid fa-check mr-1"></i> Approve
+                        </button>
+                    </form>
+                    <form method="POST" action="/circle/member/{{ req.id }}/decline" class="flex-1 sm:flex-initial">
+                        <button type="submit" onclick="return confirm('Decline request?')" class="w-full sm:w-auto bg-rose-50 hover:bg-rose-100 text-rose-700 font-bold text-xs px-3 py-2.5 rounded-xl border border-rose-200 transition">
+                            <i class="fa-solid fa-xmark mr-1"></i> Decline
+                        </button>
+                    </form>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Circle Members & Access Control Matrix -->
+    <div class="bg-white rounded-3xl border border-slate-200 p-6 sm:p-8 shadow-sm space-y-6">
+        <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pb-4 border-b border-slate-100">
+            <div>
+                <h2 class="text-xl sm:text-2xl font-black text-slate-900">Circle Members & Access Control</h2>
+                <p class="text-xs sm:text-sm text-slate-500 mt-0.5">
+                    {% if user.role == 'elder' or permissions.is_owner %}
+                    <span class="text-emerald-700 font-bold"><i class="fa-solid fa-sliders mr-1"></i> Elder Control Active:</span> Toggles update member permissions instantly via live sync.
+                    {% else %}
+                    <span class="text-slate-500 font-medium"><i class="fa-solid fa-eye mr-1"></i> Read-Only View:</span> Only {{ circle.elder.name }} can alter access permissions.
+                    {% endif %}
+                </p>
+            </div>
+            <span class="text-xs font-extrabold bg-brand-50 text-brand-800 px-3 py-1.5 rounded-xl border border-brand-200">
+                {{ members|length }} Active Members
+            </span>
+        </div>
+
+        <div class="space-y-5">
+            <!-- Elder Owner Card -->
+            <div class="p-5 rounded-2xl bg-amber-50/60 border-2 border-amber-200 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+                <div class="flex items-center gap-4">
+                    <div class="w-14 h-14 rounded-2xl overflow-hidden bg-amber-100 border-2 border-amber-300 flex-shrink-0 shadow-sm">
+                        <img src="{{ circle.elder.photo_url or 'https://images.unsplash.com/photo-1544717305-2782549b5136?w=150' }}" alt="{{ circle.elder.name }}" class="w-full h-full object-cover">
+                    </div>
+                    <div>
+                        <div class="flex items-center gap-2">
+                            <h3 class="font-black text-slate-900 text-lg">{{ circle.elder.name }} Devi</h3>
+                            <span class="bg-amber-200 text-amber-900 text-[10px] font-extrabold uppercase px-2.5 py-0.5 rounded-full">Circle Owner • Elder</span>
+                        </div>
+                        <p class="text-xs text-slate-600 font-semibold mt-0.5">{{ circle.elder.email }} • {{ circle.elder.phone }} • {{ circle.elder.city }}</p>
+                    </div>
+                </div>
+
+                <div class="flex items-center gap-2 text-xs font-bold text-amber-900 bg-white/80 px-3.5 py-2 rounded-xl border border-amber-200 shadow-sm">
+                    <i class="fa-solid fa-crown text-amber-600"></i>
+                    <span>Full Autonomous Circle Ownership</span>
+                </div>
+            </div>
+
+            <!-- Approved Members List -->
+            {% for m in members %}
+            <div class="p-6 rounded-2xl border border-slate-200 bg-white hover:border-slate-300 transition shadow-sm space-y-4" id="member-card-{{ m.id }}">
+                <div class="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 pb-4 border-b border-slate-100">
+                    <div class="flex items-center gap-4">
+                        <div class="w-12 h-12 rounded-2xl overflow-hidden bg-slate-100 border-2 border-brand-400 shadow-sm flex-shrink-0">
+                            <img src="{{ m.user.photo_url or 'https://api.dicebear.com/7.x/personas/svg?seed=' + m.user.name }}" alt="{{ m.user.name }}" class="w-full h-full object-cover">
+                        </div>
+                        <div>
+                            <div class="flex items-center gap-2">
+                                <h3 class="font-extrabold text-slate-900 text-base">{{ m.user.name }}</h3>
+                                <span class="text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-full {% if m.user.role == 'caregiver' %}bg-indigo-100 text-indigo-800{% else %}bg-purple-100 text-purple-800{% endif %}">
+                                    {{ m.relationship }} ({{ m.user.role }})
+                                </span>
+                            </div>
+                            <p class="text-xs text-slate-500 mt-0.5">{{ m.user.email }} • {{ m.user.phone or 'No phone' }} • {{ m.user.city }}</p>
+                        </div>
+                    </div>
+
+                    {% if user.role == 'elder' or permissions.is_owner %}
+                    <div class="flex items-center gap-2">
+                        <form method="POST" action="/circle/member/{{ m.id }}/remove" class="inline">
+                            <button type="submit" onclick="return confirm('Remove {{ m.user.name }} from the care circle?')" class="text-xs font-bold text-rose-600 hover:text-rose-800 hover:bg-rose-50 px-3 py-1.5 rounded-xl border border-rose-200 transition">
+                                <i class="fa-regular fa-trash-can mr-1"></i> Remove
+                            </button>
+                        </form>
+                    </div>
+                    {% endif %}
+                </div>
+
+                <!-- 6 Permissions Matrix -->
+                {% if user.role == 'elder' or permissions.is_owner %}
+                <!-- ELDER VIEW: INSTANT AJAX TOGGLES -->
+                <div>
+                    <div class="flex items-center justify-between mb-2">
+                        <span class="text-[11px] font-black uppercase tracking-wider text-slate-400">Permissions (Live Instant Saving)</span>
+                    </div>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
+                        
+                        <!-- 1. View Health Records -->
+                        <div class="p-3 rounded-xl border border-slate-200 bg-slate-50/70 flex flex-col justify-between h-24">
+                            <div class="flex items-center justify-between">
+                                <span class="text-xs font-bold text-slate-800 flex items-center gap-1.5">
+                                    <i class="fa-solid fa-heart-pulse text-brand-600 text-xs"></i> View Health
+                                </span>
+                                <span id="status-{{ m.id }}-can_view_health" class="text-[10px] font-bold"></span>
+                            </div>
+                            <div class="flex items-center justify-between mt-2 pt-2 border-t border-slate-200/60">
+                                <span class="text-[10px] text-slate-500">Prescriptions & Logs</span>
+                                <label class="relative inline-flex items-center cursor-pointer">
+                                    <input type="checkbox" onchange="togglePermission({{ m.id }}, 'can_view_health', this)"
+                                        {% if m.can_view_health %}checked{% endif %} class="sr-only peer">
+                                    <div class="w-9 h-5 bg-slate-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-teal-600"></div>
+                                </label>
+                            </div>
+                        </div>
+
+                        <!-- 2. Edit Medicines -->
+                        <div class="p-3 rounded-xl border border-slate-200 bg-slate-50/70 flex flex-col justify-between h-24">
+                            <div class="flex items-center justify-between">
+                                <span class="text-xs font-bold text-slate-800 flex items-center gap-1.5">
+                                    <i class="fa-solid fa-pills text-teal-600 text-xs"></i> Edit Medicines
+                                </span>
+                                <span id="status-{{ m.id }}-can_edit_medicines" class="text-[10px] font-bold"></span>
+                            </div>
+                            <div class="flex items-center justify-between mt-2 pt-2 border-t border-slate-200/60">
+                                <span class="text-[10px] text-slate-500">Add / Edit Dosage</span>
+                                <label class="relative inline-flex items-center cursor-pointer">
+                                    <input type="checkbox" onchange="togglePermission({{ m.id }}, 'can_edit_medicines', this)"
+                                        {% if m.can_edit_medicines %}checked{% endif %} class="sr-only peer">
+                                    <div class="w-9 h-5 bg-slate-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-teal-600"></div>
+                                </label>
+                            </div>
+                        </div>
+
+                        <!-- 3. Edit Appointments -->
+                        <div class="p-3 rounded-xl border border-slate-200 bg-slate-50/70 flex flex-col justify-between h-24">
+                            <div class="flex items-center justify-between">
+                                <span class="text-xs font-bold text-slate-800 flex items-center gap-1.5">
+                                    <i class="fa-solid fa-calendar-check text-blue-600 text-xs"></i> Edit Appts
+                                </span>
+                                <span id="status-{{ m.id }}-can_edit_appointments" class="text-[10px] font-bold"></span>
+                            </div>
+                            <div class="flex items-center justify-between mt-2 pt-2 border-t border-slate-200/60">
+                                <span class="text-[10px] text-slate-500">Doctor Visits</span>
+                                <label class="relative inline-flex items-center cursor-pointer">
+                                    <input type="checkbox" onchange="togglePermission({{ m.id }}, 'can_edit_appointments', this)"
+                                        {% if m.can_edit_appointments %}checked{% endif %} class="sr-only peer">
+                                    <div class="w-9 h-5 bg-slate-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-teal-600"></div>
+                                </label>
+                            </div>
+                        </div>
+
+                        <!-- 4. Receive Alerts -->
+                        <div class="p-3 rounded-xl border border-slate-200 bg-slate-50/70 flex flex-col justify-between h-24">
+                            <div class="flex items-center justify-between">
+                                <span class="text-xs font-bold text-rose-800 flex items-center gap-1.5">
+                                    <i class="fa-solid fa-bell text-rose-600 text-xs"></i> Receive Alerts
+                                </span>
+                                <span id="status-{{ m.id }}-can_receive_alerts" class="text-[10px] font-bold"></span>
+                            </div>
+                            <div class="flex items-center justify-between mt-2 pt-2 border-t border-slate-200/60">
+                                <span class="text-[10px] text-slate-500">SOS & Escalation</span>
+                                <label class="relative inline-flex items-center cursor-pointer">
+                                    <input type="checkbox" onchange="togglePermission({{ m.id }}, 'can_receive_alerts', this)"
+                                        {% if m.can_receive_alerts %}checked{% endif %} class="sr-only peer">
+                                    <div class="w-9 h-5 bg-slate-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-rose-600"></div>
+                                </label>
+                            </div>
+                        </div>
+
+                        <!-- 5. View Location -->
+                        <div class="p-3 rounded-xl border border-slate-200 bg-slate-50/70 flex flex-col justify-between h-24">
+                            <div class="flex items-center justify-between">
+                                <span class="text-xs font-bold text-slate-800 flex items-center gap-1.5">
+                                    <i class="fa-solid fa-location-dot text-emerald-600 text-xs"></i> View Location
+                                </span>
+                                <span id="status-{{ m.id }}-can_view_location" class="text-[10px] font-bold"></span>
+                            </div>
+                            <div class="flex items-center justify-between mt-2 pt-2 border-t border-slate-200/60">
+                                <span class="text-[10px] text-slate-500">Live GPS & Safe Zone</span>
+                                <label class="relative inline-flex items-center cursor-pointer">
+                                    <input type="checkbox" onchange="togglePermission({{ m.id }}, 'can_view_location', this)"
+                                        {% if m.can_view_location %}checked{% endif %} class="sr-only peer">
+                                    <div class="w-9 h-5 bg-slate-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-teal-600"></div>
+                                </label>
+                            </div>
+                        </div>
+
+                        <!-- 6. Manage Access -->
+                        <div class="p-3 rounded-xl border border-slate-200 bg-slate-50/70 flex flex-col justify-between h-24">
+                            <div class="flex items-center justify-between">
+                                <span class="text-xs font-bold text-slate-800 flex items-center gap-1.5">
+                                    <i class="fa-solid fa-user-shield text-indigo-600 text-xs"></i> Manage Access
+                                </span>
+                                <span id="status-{{ m.id }}-can_manage_access" class="text-[10px] font-bold"></span>
+                            </div>
+                            <div class="flex items-center justify-between mt-2 pt-2 border-t border-slate-200/60">
+                                <span class="text-[10px] text-slate-500">Circle Admin</span>
+                                <label class="relative inline-flex items-center cursor-pointer">
+                                    <input type="checkbox" onchange="togglePermission({{ m.id }}, 'can_manage_access', this)"
+                                        {% if m.can_manage_access %}checked{% endif %} class="sr-only peer">
+                                    <div class="w-9 h-5 bg-slate-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-indigo-600"></div>
+                                </label>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+                {% else %}
+                <!-- FAMILY & CAREGIVER VIEW: READ-ONLY BADGES -->
+                <div>
+                    <span class="text-[11px] font-black uppercase tracking-wider text-slate-400 block mb-2">Granted Permissions (Read-Only)</span>
+                    <div class="flex flex-wrap gap-2">
+                        <!-- View Health -->
+                        {% if m.can_view_health %}
+                        <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-800 border border-emerald-200">
+                            <i class="fa-solid fa-check text-emerald-600"></i> View Health
+                        </span>
+                        {% else %}
+                        <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-slate-100 text-slate-400 border border-slate-200">
+                            <i class="fa-solid fa-xmark"></i> Health Restricted
+                        </span>
+                        {% endif %}
+
+                        <!-- Edit Medicines -->
+                        {% if m.can_edit_medicines %}
+                        <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-800 border border-emerald-200">
+                            <i class="fa-solid fa-check text-emerald-600"></i> Edit Medicines
+                        </span>
+                        {% else %}
+                        <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-slate-100 text-slate-400 border border-slate-200">
+                            <i class="fa-solid fa-xmark"></i> Cannot Edit Medicines
+                        </span>
+                        {% endif %}
+
+                        <!-- Edit Appointments -->
+                        {% if m.can_edit_appointments %}
+                        <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-800 border border-emerald-200">
+                            <i class="fa-solid fa-check text-emerald-600"></i> Edit Appointments
+                        </span>
+                        {% else %}
+                        <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-slate-100 text-slate-400 border border-slate-200">
+                            <i class="fa-solid fa-xmark"></i> Cannot Edit Appointments
+                        </span>
+                        {% endif %}
+
+                        <!-- Receive Alerts -->
+                        {% if m.can_receive_alerts %}
+                        <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-rose-50 text-rose-800 border border-rose-200">
+                            <i class="fa-solid fa-bell text-rose-600"></i> Receives Emergency Alerts
+                        </span>
+                        {% else %}
+                        <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-slate-100 text-slate-400 border border-slate-200">
+                            <i class="fa-solid fa-xmark"></i> No Alerts
+                        </span>
+                        {% endif %}
+
+                        <!-- View Location -->
+                        {% if m.can_view_location %}
+                        <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-800 border border-emerald-200">
+                            <i class="fa-solid fa-location-dot text-emerald-600"></i> View Live Location
+                        </span>
+                        {% else %}
+                        <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-slate-100 text-slate-400 border border-slate-200">
+                            <i class="fa-solid fa-location-slash"></i> Location Hidden
+                        </span>
+                        {% endif %}
+
+                        <!-- Manage Access -->
+                        {% if m.can_manage_access %}
+                        <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-indigo-50 text-indigo-800 border border-indigo-200">
+                            <i class="fa-solid fa-user-shield text-indigo-600"></i> Circle Manager
+                        </span>
+                        {% endif %}
+                    </div>
+                </div>
+                {% endif %}
+
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- Join Another Circle with Passcode Form -->
+    <div class="bg-white rounded-3xl border border-slate-200 p-6 sm:p-8 shadow-sm">
+        <h3 class="text-base font-black text-slate-900 mb-1">Join Another Circle with Passcode</h3>
+        <p class="text-xs text-slate-500 mb-4">Enter a 6-digit passcode provided by another elder to send a join request.</p>
+
+        <form method="POST" action="/circle/join" class="flex flex-col sm:flex-row gap-3 max-w-lg">
+            <input type="text" name="passcode" required maxlength="6" placeholder="Enter 6-digit code"
+                class="px-4 py-2.5 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-brand-500 text-sm tracking-widest text-center font-bold font-mono">
+            <input type="text" name="relationship" placeholder="Relationship (e.g. Son, Nurse)"
+                class="px-4 py-2.5 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-brand-500 text-sm">
+            <button type="submit" class="bg-brand-600 hover:bg-brand-700 text-white font-bold px-5 py-2.5 rounded-xl text-sm transition whitespace-nowrap shadow-sm">
+                Request to Join
+            </button>
+        </form>
+    </div>
+
+</div>
+
+<!-- JavaScript for Instant AJAX Permission Toggles & Copying -->
+<script>
+async function togglePermission(memberId, permName, checkbox) {
+    const isChecked = checkbox.checked;
+    const statusElem = document.getElementById(`status-${memberId}-${permName}`);
+    if (statusElem) {
+        statusElem.textContent = 'Saving...';
+        statusElem.className = 'text-[10px] font-bold text-amber-600';
+    }
+
+    try {
+        const response = await fetch(`/circle/member/${memberId}/toggle-permission`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                permission: permName,
+                value: isChecked
+            })
+        });
+
+        if (response.ok) {
+            const data = await response.json();
+            if (statusElem) {
+                statusElem.textContent = 'Saved ✓';
+                statusElem.className = 'text-[10px] font-bold text-emerald-600 transition';
+                setTimeout(() => {
+                    statusElem.textContent = '';
+                }, 2000);
+            }
+        } else {
+            const err = await response.json().catch(() => ({}));
+            checkbox.checked = !isChecked; // Revert checkbox
+            alert(err.detail || 'Failed to update permission');
+            if (statusElem) statusElem.textContent = '';
+        }
+    } catch (e) {
+        checkbox.checked = !isChecked;
+        alert('Network error while updating permission');
+        if (statusElem) statusElem.textContent = '';
+    }
+}
+
+function copyPasscode(code, elderName, btn) {
+    const shareText = `Join ${elderName}'s Care Circle on CareMe using Care Passcode: ${code}`;
+    navigator.clipboard.writeText(shareText).then(() => {
+        const original = btn.innerHTML;
+        btn.innerHTML = `<i class="fa-solid fa-check text-emerald-600"></i> <span>Copied Invite!</span>`;
+        setTimeout(() => {
+            btn.innerHTML = original;
+        }, 2500);
+    }).catch(() => {
+        const temp = document.createElement('textarea');
+        temp.value = shareText;
+        document.body.appendChild(temp);
+        temp.select();
+        document.execCommand('copy');
+        document.body.removeChild(temp);
+        btn.innerHTML = `<i class="fa-solid fa-check text-emerald-600"></i> <span>Copied Invite!</span>`;
+        setTimeout(() => {
+            btn.innerHTML = `<i class="fa-regular fa-copy"></i> <span>Share & Copy</span>`;
+        }, 2500);
+    });
+}
+</script>
+{% endblock %}

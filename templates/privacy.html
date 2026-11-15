@@ -1,0 +1,97 @@
+{% extends "base.html" %}
+
+{% block title %}Privacy Notice & Medical Disclaimer - CareMe{% endblock %}
+
+{% block content %}
+<div class="max-w-3xl mx-auto py-8 px-4 space-y-6">
+
+    <!-- Header Banner -->
+    <div class="bg-gradient-to-r from-teal-800 to-brand-900 text-white rounded-3xl p-6 sm:p-8 shadow-xl space-y-2">
+        <div class="inline-flex items-center gap-2 bg-teal-500/20 text-teal-300 px-3 py-1 rounded-full text-xs font-bold border border-teal-500/30">
+            <i class="fa-solid fa-shield-halved"></i>
+            <span>Privacy & Medical Notice</span>
+        </div>
+        <h1 class="text-2xl sm:text-3xl font-black">CareMe Privacy Policy & Safety Commitment</h1>
+        <p class="text-teal-100 text-xs sm:text-sm">
+            Last updated: November 2026 • Designed with absolute respect for senior independence and family trust.
+        </p>
+    </div>
+
+    <!-- Critical Medical Disclaimer Box -->
+    <div class="bg-rose-50 border-2 border-rose-300 rounded-3xl p-6 sm:p-7 space-y-3">
+        <div class="flex items-center gap-3">
+            <div class="w-10 h-10 rounded-2xl bg-rose-600 text-white flex items-center justify-center text-lg flex-shrink-0 shadow-sm">
+                <i class="fa-solid fa-triangle-exclamation"></i>
+            </div>
+            <div>
+                <h2 class="text-base font-black text-rose-950 uppercase tracking-wide">
+                    Emergency & Medical Disclaimer
+                </h2>
+                <p class="text-xs text-rose-800 font-semibold">Mandatory Regulatory Notice</p>
+            </div>
+        </div>
+        <p class="text-xs sm:text-sm text-rose-950 leading-relaxed font-medium">
+            <strong>CareMe is not a medical device, does not provide medical advice, diagnosis, or prescription modifications, and does not replace emergency services (112).</strong> CareMe is a remote observational and family communication platform designed to help aging parents and remote family circles coordinate daily schedules. In the event of an acute medical emergency, immediately contact licensed emergency services (dial 112 in India).
+        </p>
+    </div>
+
+    <!-- Core Privacy Principles -->
+    <div class="bg-white rounded-3xl border border-slate-200 p-6 sm:p-8 shadow-sm space-y-6 text-slate-800 text-xs sm:text-sm leading-relaxed">
+        
+        <div class="space-y-2">
+            <h3 class="text-base font-black text-slate-900 flex items-center gap-2">
+                <i class="fa-solid fa-user-lock text-teal-600"></i>
+                <span>1. Elder Sovereignty & Explicit Consent</span>
+            </h3>
+            <p class="text-slate-600">
+                Elders maintain absolute control over their care circles. When any family member or caregiver registers with a Care Passcode, they enter in a locked <code>pending</code> status with zero access to health logs or location tracking until the elder explicitly taps <strong>Approve</strong>.
+            </p>
+        </div>
+
+        <div class="border-t border-slate-100"></div>
+
+        <div class="space-y-2">
+            <h3 class="text-base font-black text-slate-900 flex items-center gap-2">
+                <i class="fa-solid fa-sliders text-brand-600"></i>
+                <span>2. Granular Permissions Matrix</span>
+            </h3>
+            <p class="text-slate-600">
+                Elders can toggle 6 distinct permission boundaries at any time from their Care Circle screen (View health records, Edit medicines, Edit appointments, Receive alerts, View location, Manage access). Toggling off a permission takes effect immediately on the server side.
+            </p>
+        </div>
+
+        <div class="border-t border-slate-100"></div>
+
+        <div class="space-y-2">
+            <h3 class="text-base font-black text-slate-900 flex items-center gap-2">
+                <i class="fa-solid fa-ban text-emerald-600"></i>
+                <span>3. Zero Sale of Personal Data & Zero Behavioral Trackers</span>
+            </h3>
+            <p class="text-slate-600">
+                We never sell, monetize, or disclose your health data, medication schedules, or location coordinates to third-party advertisers, data brokers, or insurers. All data is strictly utilized to provide your family care features.
+            </p>
+        </div>
+
+        <div class="border-t border-slate-100"></div>
+
+        <div class="space-y-2">
+            <h3 class="text-base font-black text-slate-900 flex items-center gap-2">
+                <i class="fa-solid fa-trash-can text-rose-600"></i>
+                <span>4. Complete Right to Deletion</span>
+            </h3>
+            <p class="text-slate-600">
+                You have the full right to delete your account, care circle, prescriptions, and historical logs at any time from your Settings page. Deletion is instantaneous and irrevocable across the database.
+            </p>
+        </div>
+
+    </div>
+
+    <div class="text-center pt-2">
+        <a href="javascript:history.back()" class="text-xs font-bold text-brand-600 hover:underline">
+            &larr; Return to previous page
+        </a>
+    </div>
+
+</div>
+{% endblock %}
+

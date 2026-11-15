@@ -1,0 +1,146 @@
+{% extends "base.html" %}
+
+{% block title %}Welcome to CareMe - Setup Your Care Circle{% endblock %}
+
+{% block content %}
+<div class="max-w-2xl mx-auto py-6 space-y-6">
+
+    <!-- Welcome Header -->
+    <div class="bg-gradient-to-r from-teal-800 via-teal-700 to-brand-900 text-white rounded-3xl p-6 sm:p-8 shadow-xl text-center space-y-3">
+        <div class="w-16 h-16 rounded-2xl bg-white/10 backdrop-blur-sm border border-white/20 text-teal-300 flex items-center justify-center text-3xl mx-auto shadow-inner">
+            <i class="fa-solid fa-heart-pulse"></i>
+        </div>
+        <h1 class="text-2xl sm:text-3xl font-black tracking-tight">
+            Welcome to CareMe, {{ user.name }}!
+        </h1>
+        <p class="text-teal-100 text-xs sm:text-sm max-w-md mx-auto">
+            Your personal Care Circle is ready. Let's do a quick setup to get your daily medicines and family connected.
+        </p>
+    </div>
+
+    <!-- Care Passcode Share Card -->
+    <div class="bg-white rounded-3xl border-2 border-teal-200 p-6 sm:p-7 shadow-sm space-y-4">
+        <div class="flex items-center gap-2">
+            <span class="w-6 h-6 rounded-full bg-teal-100 text-teal-800 font-black text-xs flex items-center justify-center">1</span>
+            <h2 class="text-base font-extrabold text-slate-900">Your Care Passcode</h2>
+        </div>
+        <p class="text-xs text-slate-500">
+            Share this 6-digit code with your children or caregiver. When they sign up, they will use it to request connection to you.
+        </p>
+
+        <div class="bg-slate-50 border-2 border-dashed border-teal-300 rounded-2xl p-5 flex flex-col sm:flex-row items-center justify-between gap-4">
+            <div class="text-center sm:text-left">
+                <span class="text-[11px] font-bold text-slate-400 uppercase tracking-widest block">Care Passcode</span>
+                <span class="font-mono text-3xl sm:text-4xl font-black text-teal-700 tracking-wider">
+                    {{ circle.passcode }}
+                </span>
+            </div>
+            <button type="button" onclick="copyPasscode('{{ circle.passcode }}', '{{ user.name }}')" id="copy-passcode-btn"
+                class="w-full sm:w-auto px-5 py-3 rounded-xl bg-teal-600 hover:bg-teal-700 text-white font-extrabold text-xs shadow-md transition flex items-center justify-center gap-2">
+                <i class="fa-solid fa-share-nodes"></i>
+                <span id="copy-btn-text">Copy & Share Invite</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- Onboarding Form: First Medicine & Emergency Contact -->
+    <div class="bg-white rounded-3xl border border-slate-200 p-6 sm:p-8 shadow-sm">
+        <form method="POST" action="/onboarding/elder" class="space-y-6">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token(request) }}">
+
+            <!-- Step 2: First Medicine -->
+            <div class="space-y-3">
+                <div class="flex items-center gap-2">
+                    <span class="w-6 h-6 rounded-full bg-teal-100 text-teal-800 font-black text-xs flex items-center justify-center">2</span>
+                    <h2 class="text-base font-extrabold text-slate-900">Add Your First Medicine <span class="text-slate-400 text-xs font-normal">(Optional)</span></h2>
+                </div>
+                <p class="text-xs text-slate-500">
+                    You can add one now or snap a prescription photo with our AI scanner later.
+                </p>
+
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    <div class="sm:col-span-1">
+                        <label class="block text-[11px] font-bold text-slate-700 uppercase mb-1">Medicine Name</label>
+                        <input type="text" name="med_name" placeholder="e.g. Metformin"
+                            class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500">
+                    </div>
+                    <div>
+                        <label class="block text-[11px] font-bold text-slate-700 uppercase mb-1">Dosage</label>
+                        <input type="text" name="med_dosage" placeholder="e.g. 500mg"
+                            class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500">
+                    </div>
+                    <div>
+                        <label class="block text-[11px] font-bold text-slate-700 uppercase mb-1">Daily Time</label>
+                        <select name="med_time" class="w-full px-3 py-2.5 rounded-xl border border-slate-300 text-sm bg-white font-medium focus:outline-none focus:ring-2 focus:ring-brand-500">
+                            <option value="08:00">Morning (08:00 AM)</option>
+                            <option value="14:00">Afternoon (02:00 PM)</option>
+                            <option value="18:00">Evening (06:00 PM)</option>
+                            <option value="21:00">Night (09:00 PM)</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Divider -->
+            <div class="border-t border-slate-100"></div>
+
+            <!-- Step 3: Emergency Contact -->
+            <div class="space-y-3">
+                <div class="flex items-center gap-2">
+                    <span class="w-6 h-6 rounded-full bg-teal-100 text-teal-800 font-black text-xs flex items-center justify-center">3</span>
+                    <h2 class="text-base font-extrabold text-slate-900">Emergency Contact or Doctor <span class="text-slate-400 text-xs font-normal">(Optional)</span></h2>
+                </div>
+                <p class="text-xs text-slate-500">
+                    The primary family member or doctor to notify in case you tap the Emergency SOS button.
+                </p>
+
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    <div class="sm:col-span-1">
+                        <label class="block text-[11px] font-bold text-slate-700 uppercase mb-1">Contact Name</label>
+                        <input type="text" name="contact_name" placeholder="e.g. Arun Kumar"
+                            class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500">
+                    </div>
+                    <div>
+                        <label class="block text-[11px] font-bold text-slate-700 uppercase mb-1">Relationship / Role</label>
+                        <input type="text" name="contact_role" placeholder="e.g. Son, Doctor"
+                            class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500">
+                    </div>
+                    <div>
+                        <label class="block text-[11px] font-bold text-slate-700 uppercase mb-1">Phone Number</label>
+                        <input type="tel" name="contact_phone" placeholder="+91 98765 43210"
+                            class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Actions -->
+            <div class="pt-4 border-t border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-3">
+                <a href="/dashboard" class="w-full sm:w-auto text-center px-5 py-3 rounded-xl text-slate-500 hover:text-slate-800 font-bold text-xs transition">
+                    Skip for now & Go to Home
+                </a>
+                <button type="submit" class="w-full sm:w-auto px-8 py-3.5 rounded-xl bg-brand-600 hover:bg-brand-700 text-white font-black text-sm shadow-md transition flex items-center justify-center gap-2">
+                    <span>Save & Enter CareMe</span>
+                    <i class="fa-solid fa-arrow-right"></i>
+                </button>
+            </div>
+        </form>
+    </div>
+
+</div>
+
+<script>
+function copyPasscode(code, elderName) {
+    const shareText = `Join ${elderName}'s Care Circle on CareMe using Care Passcode: ${code}`;
+    const btnText = document.getElementById('copy-btn-text');
+    navigator.clipboard.writeText(shareText).then(() => {
+        btnText.textContent = "Copied Invite Link!";
+        setTimeout(() => {
+            btnText.textContent = "Copy & Share Invite";
+        }, 2500);
+    }).catch(() => {
+        prompt("Copy Care Passcode:", code);
+    });
+}
+</script>
+{% endblock %}
+

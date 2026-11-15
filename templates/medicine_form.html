@@ -1,0 +1,946 @@
+{% extends "base.html" %}
+
+{% block title %}{{ 'Edit' if action == 'edit' else 'Add' }} Medicine - CareMe{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto py-4 space-y-6">
+
+    <!-- Top Header -->
+    <div class="flex items-center justify-between">
+        <div>
+            <div class="flex items-center gap-2">
+                <span class="text-xs font-bold text-slate-400 uppercase tracking-wider">Medication Management</span>
+                <span class="bg-teal-100 text-teal-800 text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-full">Care Circle</span>
+            </div>
+            <h1 class="text-2xl sm:text-3xl font-black text-slate-900 mt-1">
+                {{ 'Edit Medicine' if action == 'edit' else 'Add Medicine to Schedule' }}
+            </h1>
+            <p class="text-xs sm:text-sm text-slate-500">
+                Prescription schedule for <strong>{{ circle.elder.name }} Devi</strong>
+            </p>
+        </div>
+        <a href="/medicines" class="px-4 py-2 border border-slate-200 text-slate-600 hover:text-slate-900 font-bold rounded-xl text-xs hover:bg-slate-50 transition">
+            <i class="fa-solid fa-arrow-left mr-1"></i> Back to Schedule
+        </a>
+    </div>
+
+    {% if action == 'add' %}
+    <!-- ========================================================================= -->
+    <!-- GEMINI PRESCRIPTION SCANNER CARD -->
+    <!-- ========================================================================= -->
+    <div class="bg-white rounded-3xl border-2 border-teal-200/80 p-6 sm:p-8 shadow-md space-y-6 relative overflow-hidden" id="gemini-scanner-card">
+        
+        <!-- Top Gradient Accent Line -->
+        <div class="absolute top-0 left-0 right-0 h-2 bg-gradient-to-r from-teal-500 via-brand-500 to-indigo-600"></div>
+
+        <!-- Banner Header -->
+        <div class="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+            <div class="flex items-start gap-3.5">
+                <div class="w-12 h-12 rounded-2xl bg-gradient-to-tr from-teal-500 to-brand-600 text-white flex items-center justify-center text-xl shadow-md shadow-teal-500/20 flex-shrink-0">
+                    <i class="fa-solid fa-wand-magic-sparkles"></i>
+                </div>
+                <div>
+                    <div class="flex items-center gap-2">
+                        <span class="bg-gradient-to-r from-teal-600 to-brand-700 text-white text-[10px] font-black uppercase px-2.5 py-0.5 rounded-full shadow-sm">
+                            Powered by Google Gemini 2.5 Flash
+                        </span>
+                        {% if not gemini_configured and demo_mode %}
+                        <span class="bg-amber-100 text-amber-800 text-[10px] font-bold px-2 py-0.5 rounded-full" title="Demo mode provides sample extracted prescription for testing">
+                            Demo Mode Active
+                        </span>
+                        {% endif %}
+                    </div>
+                    <h2 class="text-xl sm:text-2xl font-black text-slate-900 mt-1">
+                        Snap a prescription. AI fills the schedule.
+                    </h2>
+                    <p class="text-xs sm:text-sm text-slate-500 mt-0.5">
+                        Capture a photo with your camera or upload a JPG/PNG prescription. Gemini extracts medicines, dosage, and times automatically.
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Upload & Camera Dropzone Container -->
+        <div id="upload-zone" class="space-y-4">
+            <!-- Hidden File Input for Standard File Browsing (Desktop / Mobile Gallery) -->
+            <input type="file" id="prescription-browse-input" accept="image/jpeg,image/png,image/jpg,image/webp" class="hidden" onchange="handleFilePicked(this)">
+            
+            <!-- Hidden File Input for Phone Native Camera Fallback if getUserMedia is blocked or unsupported -->
+            <input type="file" id="prescription-camera-fallback" accept="image/*" capture="environment" class="hidden" onchange="handleFilePicked(this)">
+
+            <!-- Interactive Dropzone Area -->
+            <div id="drop-area"
+                onclick="document.getElementById('prescription-browse-input').click()"
+                ondragover="handleDragOver(event)"
+                ondragleave="handleDragLeave(event)"
+                ondrop="handleDrop(event)"
+                class="border-2 border-dashed border-teal-300 hover:border-brand-500 rounded-3xl p-6 sm:p-8 text-center cursor-pointer bg-teal-50/30 hover:bg-teal-50/60 transition group">
+                
+                <div class="w-16 h-16 rounded-2xl bg-white text-teal-600 group-hover:text-brand-600 border border-teal-200 flex items-center justify-center text-2xl mx-auto shadow-sm group-hover:scale-105 transition">
+                    <i class="fa-solid fa-camera"></i>
+                </div>
+
+                <div class="mt-3 space-y-1">
+                    <p class="text-sm sm:text-base font-extrabold text-slate-800">
+                        <span class="text-brand-600">Snap a photo</span> or choose image file
+                    </p>
+                    <p class="text-xs text-slate-500">
+                        Supports live camera capture, JPG, PNG, and WebP (up to 15MB)
+                    </p>
+                </div>
+
+                <!-- Two Trigger Pills -->
+                <div class="flex items-center justify-center gap-3 mt-4" onclick="event.stopPropagation()">
+                    <button type="button" onclick="openCameraModal()"
+                        class="bg-white hover:bg-slate-50 active:scale-95 text-slate-800 font-bold px-4 py-2.5 rounded-xl text-xs border border-slate-200 shadow-sm flex items-center gap-2 transition hover:border-teal-500 hover:text-teal-700">
+                        <i class="fa-solid fa-camera text-teal-600"></i>
+                        <span>Use Camera</span>
+                    </button>
+                    <button type="button" onclick="document.getElementById('prescription-browse-input').click()"
+                        class="bg-brand-50 hover:bg-brand-100 active:scale-95 text-brand-800 font-bold px-4 py-2.5 rounded-xl text-xs border border-brand-200 shadow-sm flex items-center gap-2 transition">
+                        <i class="fa-solid fa-folder-open text-brand-600"></i>
+                        <span>Browse Files</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Selected File Preview & Scan Trigger Box -->
+        <div id="preview-box" class="hidden bg-slate-50 border border-slate-200 rounded-2xl p-4 sm:p-5 space-y-4">
+            <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                <div class="flex items-center gap-4">
+                    <div class="w-16 h-16 rounded-xl overflow-hidden bg-slate-200 border border-slate-300 flex-shrink-0 shadow-sm">
+                        <img id="preview-img" src="" alt="Prescription preview" class="w-full h-full object-cover">
+                    </div>
+                    <div>
+                        <p class="text-xs font-black text-slate-900 truncate max-w-xs" id="file-name">prescription.jpg</p>
+                        <p class="text-[11px] text-slate-500" id="file-size">1.2 MB</p>
+                        <span class="inline-flex items-center gap-1 text-[10px] font-bold text-teal-700 bg-teal-100 px-2 py-0.5 rounded-full mt-1">
+                            <i class="fa-solid fa-check-circle"></i> Ready to scan
+                        </span>
+                    </div>
+                </div>
+
+                <div class="flex items-center gap-2.5 w-full sm:w-auto">
+                    <button type="button" onclick="retakeOrChangePhoto()"
+                        class="flex-1 sm:flex-initial px-4 py-2.5 rounded-xl border border-slate-300 text-slate-700 hover:text-slate-900 text-xs font-bold bg-white hover:bg-slate-50 flex items-center justify-center gap-1.5 transition">
+                        <i class="fa-solid fa-rotate-left text-slate-500"></i>
+                        <span id="retake-btn-label">Retake</span>
+                    </button>
+                    <button type="button" id="start-scan-btn" onclick="triggerGeminiScan()"
+                        class="flex-1 sm:flex-initial bg-gradient-to-r from-teal-600 to-brand-600 hover:from-teal-700 hover:to-brand-700 text-white font-extrabold px-5 py-2.5 rounded-xl text-xs shadow-md shadow-teal-600/20 flex items-center justify-center gap-2 transition">
+                        <i class="fa-solid fa-wand-magic-sparkles"></i>
+                        <span>Scan with Gemini</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Real-Time Scanning Spinner -->
+        <div id="scanning-state" class="hidden text-center py-8 space-y-3 bg-teal-50/40 rounded-2xl border border-teal-200/60 p-6">
+            <div class="inline-block relative">
+                <div class="w-14 h-14 rounded-full border-4 border-teal-200 border-t-brand-600 animate-spin mx-auto"></div>
+                <div class="absolute inset-0 flex items-center justify-center text-brand-600 text-lg">
+                    <i class="fa-solid fa-brain"></i>
+                </div>
+            </div>
+            <div>
+                <h3 class="text-base font-extrabold text-slate-900">Gemini 2.5 Flash is analyzing your prescription...</h3>
+                <p class="text-xs text-slate-500 mt-1 max-w-md mx-auto">
+                    Deciphering doctor's handwriting, medicine names, dosages, and daily administration routine.
+                </p>
+            </div>
+        </div>
+
+        <!-- Friendly Error Banner (Camera errors & Scan errors with Fallback) -->
+        <div id="scan-error-alert" class="hidden bg-rose-50 border-2 border-rose-200 rounded-2xl p-4 sm:p-5 flex items-start gap-3.5 text-rose-900">
+            <div class="w-9 h-9 rounded-xl bg-rose-500 text-white flex items-center justify-center text-base flex-shrink-0 shadow-sm" id="error-alert-icon">
+                <i class="fa-solid fa-triangle-exclamation"></i>
+            </div>
+            <div class="flex-1 text-xs">
+                <p class="font-extrabold text-rose-950 text-sm" id="scan-error-title">Prescription Scan Notice</p>
+                <p class="mt-0.5 text-rose-800" id="scan-error-message">
+                    Could not decipher prescription clearly. Please re-take a clearer photo or enter details manually below.
+                </p>
+                <p class="mt-2 text-rose-700 font-semibold" id="scan-error-footer">
+                    <i class="fa-solid fa-arrow-down mr-1"></i> You can proceed directly using the standard manual form below.
+                </p>
+            </div>
+            <button type="button" onclick="document.getElementById('scan-error-alert').classList.add('hidden')" class="text-rose-400 hover:text-rose-600 text-base">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+        </div>
+
+        <!-- ===================================================================== -->
+        <!-- EDITABLE REVIEW TABLE (NOTHING SAVED UNTIL USER CONFIRMS) -->
+        <!-- ===================================================================== -->
+        <div id="results-section" class="hidden space-y-5 pt-2">
+            
+            <!-- Mandatory Doctor Verification Alert -->
+            <div class="bg-amber-50 border-2 border-amber-300 rounded-2xl p-4 flex items-start gap-3 shadow-sm">
+                <div class="w-8 h-8 rounded-xl bg-amber-500 text-white flex items-center justify-center text-base flex-shrink-0 mt-0.5">
+                    <i class="fa-solid fa-shield-heart"></i>
+                </div>
+                <div>
+                    <h4 class="text-sm font-black text-amber-950 uppercase tracking-wide">
+                        Please verify with your doctor's prescription
+                    </h4>
+                    <p class="text-xs text-amber-900 font-medium mt-0.5">
+                        Nothing is saved until you click <strong>"Confirm & Save All to Schedule"</strong>. Review all detected medicines, dosages, and times below. Any unreadable text is highlighted as <em>unclear</em>.
+                    </p>
+                </div>
+            </div>
+
+            <!-- Table Container -->
+            <div class="overflow-x-auto rounded-2xl border border-slate-200 shadow-sm">
+                <table class="w-full text-left text-xs" id="scanned-medicines-table">
+                    <thead class="bg-slate-100/80 text-slate-700 font-extrabold uppercase tracking-wider text-[11px] border-b border-slate-200">
+                        <tr>
+                            <th class="py-3 px-3">Medicine Name</th>
+                            <th class="py-3 px-3">Dosage</th>
+                            <th class="py-3 px-3">Daily Dosing Times</th>
+                            <th class="py-3 px-3 w-24">Duration</th>
+                            <th class="py-3 px-3">Instructions</th>
+                            <th class="py-3 px-2 text-center w-12">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-100 bg-white font-medium" id="scanned-table-body">
+                        <!-- Rows populated dynamically via JavaScript -->
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Table Actions: Add Row & Confirm and Save -->
+            <div class="flex flex-col sm:flex-row items-center justify-between gap-4 pt-2">
+                <button type="button" onclick="addEmptyScannedRow()"
+                    class="w-full sm:w-auto bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold px-4 py-2.5 rounded-xl text-xs flex items-center justify-center gap-1.5 transition">
+                    <i class="fa-solid fa-plus text-slate-500"></i>
+                    <span>Add Another Medicine</span>
+                </button>
+
+                <div class="flex items-center gap-3 w-full sm:w-auto">
+                    <button type="button" onclick="discardScannedResults()"
+                        class="px-4 py-2.5 border border-slate-200 text-slate-600 hover:text-slate-800 font-bold rounded-xl text-xs hover:bg-slate-50 transition">
+                        Discard
+                    </button>
+                    <button type="button" id="confirm-save-btn" onclick="saveConfirmedMedicines()"
+                        class="w-full sm:w-auto bg-emerald-600 hover:bg-emerald-700 text-white font-black px-6 py-3 rounded-xl text-xs shadow-md shadow-emerald-600/20 flex items-center justify-center gap-2 transition">
+                        <i class="fa-solid fa-circle-check text-base"></i>
+                        <span>Confirm & Save All to Schedule</span>
+                    </button>
+                </div>
+            </div>
+
+        </div>
+
+    </div>
+
+    <!-- Divider: Or Enter Manually -->
+    <div class="relative py-2">
+        <div class="absolute inset-0 flex items-center">
+            <div class="w-full border-t border-slate-200"></div>
+        </div>
+        <div class="relative flex justify-center text-xs uppercase">
+            <span class="bg-slate-50 px-3 text-slate-400 font-extrabold tracking-wider">
+                Or Enter Medicine Manually
+            </span>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- ========================================================================= -->
+    <!-- MANUAL MEDICINE FORM (ALWAYS AVAILABLE) -->
+    <!-- ========================================================================= -->
+    <div class="bg-white rounded-3xl border border-slate-200 p-6 sm:p-8 shadow-sm">
+        <div class="flex items-center justify-between mb-5 pb-4 border-b border-slate-100">
+            <div>
+                <h2 class="text-lg font-black text-slate-900">
+                    {{ 'Edit Prescription Details' if action == 'edit' else 'Manual Prescription Entry' }}
+                </h2>
+                <p class="text-xs text-slate-500">Enter drug details, dosage, and times directly</p>
+            </div>
+            {% if action == 'add' %}
+            <span class="text-[11px] font-bold text-slate-400 bg-slate-100 px-2.5 py-1 rounded-lg">
+                Manual Mode
+            </span>
+            {% endif %}
+        </div>
+
+        <form method="POST" action="{{ '/medicines/edit/' + medicine.id|string if action == 'edit' else '/medicines/add' }}" class="space-y-4" id="manual-medicine-form">
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Medicine Name *</label>
+                    <input type="text" name="name" required value="{{ medicine.name if medicine else '' }}" placeholder="e.g. Metformin, Amlodipine"
+                        class="w-full px-4 py-2.5 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-brand-500 text-sm">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Dosage *</label>
+                    <input type="text" name="dosage" required value="{{ medicine.dosage if medicine else '' }}" placeholder="e.g. 500mg, 10mg"
+                        class="w-full px-4 py-2.5 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-brand-500 text-sm">
+                </div>
+            </div>
+
+            <div>
+                <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Instructions & Administration</label>
+                <input type="text" name="instructions" value="{{ medicine.instructions if medicine else '' }}" placeholder="e.g. Take after breakfast with water"
+                    class="w-full px-4 py-2.5 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-brand-500 text-sm">
+            </div>
+
+            <div>
+                <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Daily Schedule Times (24h format, comma separated) *</label>
+                <input type="text" name="times_raw" required value="{{ times_str if times_str else '08:00, 14:00' }}" placeholder="08:00, 14:00, 20:00"
+                    class="w-full px-4 py-2.5 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-brand-500 text-sm font-mono">
+                <div class="flex items-center gap-2 mt-1.5 text-[11px] text-slate-400">
+                    <span class="font-bold text-slate-500">Quick suggestions:</span>
+                    <button type="button" onclick="setTimes('08:00')" class="underline hover:text-brand-600">Once daily (08:00)</button> •
+                    <button type="button" onclick="setTimes('08:00, 20:00')" class="underline hover:text-brand-600">Twice daily (08:00, 20:00)</button> •
+                    <button type="button" onclick="setTimes('08:00, 14:00, 20:00')" class="underline hover:text-brand-600">Thrice daily</button>
+                </div>
+            </div>
+
+            <div>
+                <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Days of Week (comma separated)</label>
+                <input type="text" name="days_raw" value="{{ days_str if days_str else 'Mon, Tue, Wed, Thu, Fri, Sat, Sun' }}"
+                    class="w-full px-4 py-2.5 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-brand-500 text-sm">
+            </div>
+
+            <div class="pt-4 flex items-center justify-end gap-3 border-t border-slate-100">
+                <a href="/medicines" class="px-5 py-2.5 border border-slate-200 text-slate-600 font-bold rounded-xl text-sm hover:bg-slate-50 transition">
+                    Cancel
+                </a>
+                <button type="submit" class="px-6 py-2.5 bg-brand-600 hover:bg-brand-700 text-white font-bold rounded-xl text-sm shadow-sm transition">
+                    Save Medicine Schedule
+                </button>
+            </div>
+        </form>
+    </div>
+
+</div>
+
+<!-- ========================================================================= -->
+<!-- LIVE CAMERA MODAL (getUserMedia with Video & Big Capture Button) -->
+<!-- ========================================================================= -->
+<div id="camera-modal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-50 hidden flex items-center justify-center p-3 sm:p-6" role="dialog" aria-modal="true" onclick="if (event.target === this) closeCameraModal()">
+    <div class="bg-slate-900 border border-slate-700/80 rounded-3xl max-w-xl w-full overflow-hidden shadow-2xl flex flex-col transition-all">
+        
+        <!-- Modal Header -->
+        <div class="px-5 py-4 bg-slate-950 border-b border-slate-800 flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                <div class="w-9 h-9 rounded-xl bg-teal-500/20 text-teal-400 border border-teal-500/30 flex items-center justify-center text-sm">
+                    <i class="fa-solid fa-camera"></i>
+                </div>
+                <div>
+                    <h3 class="text-sm font-extrabold text-white">Live Prescription Camera</h3>
+                    <p class="text-[11px] text-slate-400">Position prescription text flat and clear in the frame</p>
+                </div>
+            </div>
+            <button type="button" onclick="closeCameraModal()" class="w-8 h-8 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white flex items-center justify-center transition" title="Close Camera (Esc)">
+                <i class="fa-solid fa-xmark text-sm"></i>
+            </button>
+        </div>
+
+        <!-- Video Stream Container -->
+        <div class="relative bg-black w-full overflow-hidden flex items-center justify-center min-h-[320px] sm:min-h-[400px] max-h-[65vh]">
+            <!-- Video Element -->
+            <video id="camera-video" class="w-full h-full object-cover" autoplay playsinline muted></video>
+
+            <!-- Visual Viewfinder Alignment Guide -->
+            <div class="pointer-events-none absolute inset-6 sm:inset-10 border-2 border-teal-400/70 rounded-2xl flex flex-col justify-between p-3.5 shadow-[0_0_0_9999px_rgba(15,23,42,0.45)]">
+                <div class="flex justify-between items-center text-teal-300 font-mono text-sm opacity-80">
+                    <span>┌</span>
+                    <span class="text-[10px] font-bold tracking-widest uppercase bg-slate-950/70 px-2 py-0.5 rounded-full text-teal-300 border border-teal-500/30">
+                        Prescription Guide
+                    </span>
+                    <span>┐</span>
+                </div>
+                <div class="text-center">
+                    <span class="inline-flex items-center gap-1.5 text-[11px] font-bold text-white bg-slate-950/75 px-3 py-1 rounded-full border border-slate-700/80 backdrop-blur-sm">
+                        <i class="fa-solid fa-file-prescription text-teal-400"></i> Center doctor's Rx within box
+                    </span>
+                </div>
+                <div class="flex justify-between items-center text-teal-300 font-mono text-sm opacity-80">
+                    <span>└</span>
+                    <span>┘</span>
+                </div>
+            </div>
+
+            <!-- Camera Loading Indicator -->
+            <div id="camera-loading" class="absolute inset-0 flex flex-col items-center justify-center bg-slate-950/90 text-white gap-3 z-10">
+                <div class="w-12 h-12 rounded-full border-4 border-slate-700 border-t-teal-400 animate-spin"></div>
+                <p class="text-xs font-bold text-slate-300">Connecting to camera stream...</p>
+            </div>
+        </div>
+
+        <!-- Camera Controls Bar -->
+        <div class="p-4 sm:p-5 bg-slate-950 border-t border-slate-800 flex items-center justify-between gap-3">
+            <!-- Cancel Button -->
+            <button type="button" onclick="closeCameraModal()"
+                class="px-4 py-3 rounded-2xl border border-slate-700 hover:bg-slate-800 text-slate-300 hover:text-white font-bold text-xs sm:text-sm flex items-center gap-2 transition">
+                <i class="fa-solid fa-xmark"></i>
+                <span>Cancel</span>
+            </button>
+
+            <!-- Big Tactile Capture Button -->
+            <button type="button" id="capture-photo-btn" onclick="capturePhoto()"
+                class="flex-1 sm:flex-initial bg-gradient-to-r from-teal-500 via-teal-600 to-emerald-600 hover:from-teal-600 hover:to-emerald-700 active:scale-95 text-white font-black px-7 sm:px-10 py-3.5 rounded-2xl shadow-lg shadow-teal-500/25 text-sm sm:text-base flex items-center justify-center gap-2.5 transition">
+                <i class="fa-solid fa-camera text-base sm:text-lg"></i>
+                <span>Capture Photo</span>
+            </button>
+
+            <!-- Switch Camera Button -->
+            <button type="button" id="switch-camera-btn" onclick="toggleCameraFacing()"
+                class="px-4 py-3 rounded-2xl border border-slate-700 bg-slate-900 hover:bg-slate-800 text-slate-300 hover:text-white font-bold text-xs flex items-center gap-1.5 transition" title="Switch camera">
+                <i class="fa-solid fa-camera-rotate"></i>
+                <span class="hidden sm:inline">Flip</span>
+            </button>
+        </div>
+
+    </div>
+</div>
+
+<!-- Hidden Canvas for Video Frame Capture -->
+<canvas id="camera-canvas" class="hidden"></canvas>
+
+<!-- JavaScript for Live Camera, Gemini Scanner, File Handling, and Editable Table -->
+<script>
+let currentSelectedFile = null;
+let currentCameraStream = null;
+let currentFacingMode = "environment";
+let wasCapturedFromCamera = false;
+
+function setTimes(val) {
+    const input = document.querySelector('input[name="times_raw"]');
+    if (input) input.value = val;
+}
+
+// -----------------------------------------------------------------------------
+// Live Camera Controls (getUserMedia API)
+// -----------------------------------------------------------------------------
+async function openCameraModal() {
+    // 1. Check for Secure Context & MediaDevices API Support
+    const isLocalhost = (
+        window.location.hostname === "localhost" ||
+        window.location.hostname === "127.0.0.1" ||
+        window.location.hostname === "[::1]"
+    );
+    const isSecure = window.isSecureContext || isLocalhost;
+
+    if (!isSecure) {
+        handleCameraError({ name: "InsecureContext" });
+        return;
+    }
+
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        handleCameraError({ name: "NotSupportedError" });
+        return;
+    }
+
+    const modal = document.getElementById('camera-modal');
+    const video = document.getElementById('camera-video');
+    const loading = document.getElementById('camera-loading');
+
+    // Make sure previous stream is closed cleanly
+    closeCameraStreamOnly();
+
+    modal.classList.remove('hidden');
+    loading.classList.remove('hidden');
+
+    try {
+        let stream = null;
+        try {
+            // First attempt: environment facing camera (back camera on phone) with ideal resolution
+            stream = await navigator.mediaDevices.getUserMedia({
+                video: {
+                    facingMode: currentFacingMode,
+                    width: { ideal: 1920 },
+                    height: { ideal: 1080 }
+                },
+                audio: false
+            });
+        } catch (initialErr) {
+            console.warn("Retrying with simple video constraints for desktop/webcam fallback...", initialErr);
+            // Fallback for desktops/laptops where facingMode: environment raises OverconstrainedError
+            stream = await navigator.mediaDevices.getUserMedia({
+                video: true,
+                audio: false
+            });
+        }
+
+        currentCameraStream = stream;
+        video.srcObject = stream;
+
+        // Ensure video playback starts
+        await new Promise((resolve) => {
+            video.onloadedmetadata = () => {
+                video.play().then(resolve).catch(resolve);
+            };
+        });
+
+        loading.classList.add('hidden');
+    } catch (err) {
+        console.error("Camera access error:", err);
+        closeCameraModal();
+        handleCameraError(err);
+    }
+}
+
+function closeCameraStreamOnly() {
+    if (currentCameraStream) {
+        try {
+            currentCameraStream.getTracks().forEach(track => {
+                track.stop();
+            });
+        } catch (e) {
+            console.warn("Error stopping camera tracks:", e);
+        }
+        currentCameraStream = null;
+    }
+    const video = document.getElementById('camera-video');
+    if (video) {
+        try {
+            video.pause();
+            video.srcObject = null;
+        } catch (e) {}
+    }
+}
+
+function closeCameraModal() {
+    closeCameraStreamOnly();
+    const modal = document.getElementById('camera-modal');
+    if (modal) {
+        modal.classList.add('hidden');
+    }
+}
+
+async function toggleCameraFacing() {
+    currentFacingMode = (currentFacingMode === "environment") ? "user" : "environment";
+    const loading = document.getElementById('camera-loading');
+    if (loading) loading.classList.remove('hidden');
+    closeCameraStreamOnly();
+    await openCameraModal();
+}
+
+function capturePhoto() {
+    const video = document.getElementById('camera-video');
+    const canvas = document.getElementById('camera-canvas');
+
+    if (!video || !video.videoWidth || !video.videoHeight) {
+        alert("Camera stream is not ready yet. Please wait a moment.");
+        return;
+    }
+
+    // Match canvas dimensions to the actual video stream resolution
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    const ctx = canvas.getContext('2d');
+
+    // Draw the current video frame onto the canvas
+    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+    // Stop all camera tracks and close modal
+    closeCameraModal();
+
+    // Convert frame to JPEG Blob and File object
+    canvas.toBlob(function(blob) {
+        if (!blob) {
+            alert("Could not process photo capture. Please try again or select a file.");
+            return;
+        }
+
+        const dateStr = new Date().toISOString().replace(/[:.]/g, '-');
+        const filename = `prescription_camera_${dateStr}.jpg`;
+        const capturedFile = new File([blob], filename, { type: 'image/jpeg' });
+
+        wasCapturedFromCamera = true;
+        processSelectedFile(capturedFile);
+    }, 'image/jpeg', 0.92);
+}
+
+// Handle Camera Errors with Friendly Messages & Automatic Fallback to File Picker
+function handleCameraError(err) {
+    let title = "Camera Access Notice";
+    let message = "Could not access the camera. Please select an image file instead.";
+    const errName = err ? (err.name || err.message || "") : "";
+
+    if (errName === 'NotAllowedError' || errName === 'PermissionDeniedError' || errName.toLowerCase().includes('permission') || errName.toLowerCase().includes('denied')) {
+        message = "Please allow camera access in the browser address bar.";
+    } else if (errName === 'NotFoundError' || errName === 'DevicesNotFoundError' || errName.toLowerCase().includes('notfound')) {
+        message = "No camera found on this device. Please upload a photo instead.";
+    } else if (errName === 'InsecureContext' || errName === 'NotSupportedError' || (!window.isSecureContext && window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1')) {
+        message = "Camera access requires a secure connection (HTTPS) or is not supported by your browser.";
+    } else if (errName === 'NotReadableError' || errName === 'TrackStartError') {
+        message = "Camera is currently in use by another application. Please upload a photo instead.";
+    }
+
+    // Show friendly banner notice
+    const errorAlert = document.getElementById('scan-error-alert');
+    const errorTitle = document.getElementById('scan-error-title');
+    const errorMsg = document.getElementById('scan-error-message');
+    const errorFooter = document.getElementById('scan-error-footer');
+
+    if (errorTitle) errorTitle.textContent = title;
+    if (errorMsg) errorMsg.textContent = message;
+    if (errorFooter) {
+        errorFooter.innerHTML = `<i class="fa-solid fa-folder-open mr-1"></i> Opening file browser for you now...`;
+    }
+    if (errorAlert) {
+        errorAlert.classList.remove('hidden');
+    }
+
+    // Automatically fall back to file picker so the user is never stuck
+    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+    setTimeout(() => {
+        if (isMobile) {
+            const mobileCameraFallback = document.getElementById('prescription-camera-fallback');
+            if (mobileCameraFallback) {
+                mobileCameraFallback.click();
+                return;
+            }
+        }
+        const browseInput = document.getElementById('prescription-browse-input');
+        if (browseInput) {
+            browseInput.click();
+        }
+    }, 450);
+}
+
+// Close modal on Escape key
+document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') {
+        const modal = document.getElementById('camera-modal');
+        if (modal && !modal.classList.contains('hidden')) {
+            closeCameraModal();
+        }
+    }
+});
+
+// -----------------------------------------------------------------------------
+// File Selection & Drag-and-Drop Handlers
+// -----------------------------------------------------------------------------
+function handleFilePicked(input) {
+    if (input.files && input.files[0]) {
+        wasCapturedFromCamera = (input.id === 'prescription-camera-fallback');
+        processSelectedFile(input.files[0]);
+    }
+}
+
+function handleDragOver(e) {
+    e.preventDefault();
+    e.stopPropagation();
+    document.getElementById('drop-area').classList.add('border-brand-500', 'bg-teal-50/80');
+}
+
+function handleDragLeave(e) {
+    e.preventDefault();
+    e.stopPropagation();
+    document.getElementById('drop-area').classList.remove('border-brand-500', 'bg-teal-50/80');
+}
+
+function handleDrop(e) {
+    e.preventDefault();
+    e.stopPropagation();
+    document.getElementById('drop-area').classList.remove('border-brand-500', 'bg-teal-50/80');
+    if (e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0]) {
+        wasCapturedFromCamera = false;
+        processSelectedFile(e.dataTransfer.files[0]);
+    }
+}
+
+function processSelectedFile(file) {
+    currentSelectedFile = file;
+    document.getElementById('file-name').textContent = file.name;
+    document.getElementById('file-size').textContent = (file.size / (1024 * 1024)).toFixed(2) + ' MB';
+
+    // Show thumbnail preview
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        document.getElementById('preview-img').src = e.target.result;
+    };
+    reader.readAsDataURL(file);
+
+    document.getElementById('upload-zone').classList.add('hidden');
+    document.getElementById('preview-box').classList.remove('hidden');
+    document.getElementById('scan-error-alert').classList.add('hidden');
+
+    // Update retake label based on origin
+    const retakeLabel = document.getElementById('retake-btn-label');
+    if (retakeLabel) {
+        retakeLabel.textContent = wasCapturedFromCamera ? "Retake" : "Change Photo";
+    }
+}
+
+function retakeOrChangePhoto() {
+    const fromCamera = wasCapturedFromCamera;
+    resetFilePicker();
+    if (fromCamera) {
+        openCameraModal();
+    } else {
+        const browseInput = document.getElementById('prescription-browse-input');
+        if (browseInput) browseInput.click();
+    }
+}
+
+function resetFilePicker() {
+    currentSelectedFile = null;
+    wasCapturedFromCamera = false;
+    const browseInput = document.getElementById('prescription-browse-input');
+    const cameraFallback = document.getElementById('prescription-camera-fallback');
+    if (browseInput) browseInput.value = '';
+    if (cameraFallback) cameraFallback.value = '';
+    document.getElementById('preview-box').classList.add('hidden');
+    document.getElementById('upload-zone').classList.remove('hidden');
+    document.getElementById('scan-error-alert').classList.add('hidden');
+}
+
+function discardScannedResults() {
+    document.getElementById('results-section').classList.add('hidden');
+    document.getElementById('scanned-table-body').innerHTML = '';
+    resetFilePicker();
+}
+
+async function triggerGeminiScan() {
+    if (!currentSelectedFile) {
+        alert("Please select or capture a prescription photo first.");
+        return;
+    }
+
+    const scanBtn = document.getElementById('start-scan-btn');
+    const scanningState = document.getElementById('scanning-state');
+    const errorAlert = document.getElementById('scan-error-alert');
+    const errorMsg = document.getElementById('scan-error-message');
+    const resultsSection = document.getElementById('results-section');
+
+    scanBtn.disabled = true;
+    scanBtn.classList.add('opacity-50');
+    scanningState.classList.remove('hidden');
+    errorAlert.classList.add('hidden');
+    resultsSection.classList.add('hidden');
+
+    const formData = new FormData();
+    formData.append('file', currentSelectedFile);
+
+    try {
+        const response = await fetch('/medicines/scan', {
+            method: 'POST',
+            body: formData
+        });
+
+        const data = await response.json();
+        scanningState.classList.add('hidden');
+        scanBtn.disabled = false;
+        scanBtn.classList.remove('opacity-50');
+
+        if (response.ok && data.success && data.items && data.items.length > 0) {
+            populateEditableTable(data.items);
+            resultsSection.classList.remove('hidden');
+            // Scroll to results
+            resultsSection.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        } else {
+            errorMsg.textContent = data.error || "Could not decipher prescription clearly. Please check the photo or enter manually below.";
+            errorAlert.classList.remove('hidden');
+        }
+    } catch (err) {
+        scanningState.classList.add('hidden');
+        scanBtn.disabled = false;
+        scanBtn.classList.remove('opacity-50');
+        errorMsg.textContent = "Network or server error while communicating with Gemini AI. Manual entry form is ready below.";
+        errorAlert.classList.remove('hidden');
+    }
+}
+
+function populateEditableTable(items) {
+    const tbody = document.getElementById('scanned-table-body');
+    tbody.innerHTML = '';
+
+    items.forEach((item, index) => {
+        const isUnclear = (item.name.toLowerCase() === 'unclear');
+        const times = Array.isArray(item.times) ? item.times.map(t => t.toLowerCase()) : ['morning'];
+
+        const row = document.createElement('tr');
+        row.className = "hover:bg-slate-50 transition scanned-row";
+        row.innerHTML = `
+            <td class="py-2.5 px-3">
+                <input type="text" class="med-name w-full px-2.5 py-1.5 rounded-lg border ${isUnclear ? 'border-amber-400 bg-amber-50 text-amber-900' : 'border-slate-300'} font-bold text-xs focus:ring-1 focus:ring-brand-500"
+                    value="${item.name || ''}" placeholder="${isUnclear ? 'Type medicine name' : 'Medicine name'}">
+                ${isUnclear ? '<span class="text-[10px] text-amber-700 font-bold block mt-0.5"><i class="fa-solid fa-triangle-exclamation mr-0.5"></i> Name unclear - please review</span>' : ''}
+            </td>
+            <td class="py-2.5 px-3">
+                <input type="text" class="med-dosage w-full px-2.5 py-1.5 rounded-lg border border-slate-300 font-semibold text-xs focus:ring-1 focus:ring-brand-500"
+                    value="${item.dosage || ''}" placeholder="e.g. 500mg">
+            </td>
+            <td class="py-2.5 px-3">
+                <div class="flex flex-wrap gap-2 text-[11px] font-semibold">
+                    <label class="inline-flex items-center gap-1 cursor-pointer">
+                        <input type="checkbox" class="time-check rounded text-teal-600 focus:ring-teal-500" value="morning" ${times.includes('morning') ? 'checked' : ''}>
+                        <span>Morn (08:00)</span>
+                    </label>
+                    <label class="inline-flex items-center gap-1 cursor-pointer">
+                        <input type="checkbox" class="time-check rounded text-teal-600 focus:ring-teal-500" value="afternoon" ${times.includes('afternoon') ? 'checked' : ''}>
+                        <span>Noon (14:00)</span>
+                    </label>
+                    <label class="inline-flex items-center gap-1 cursor-pointer">
+                        <input type="checkbox" class="time-check rounded text-teal-600 focus:ring-teal-500" value="evening" ${times.includes('evening') ? 'checked' : ''}>
+                        <span>Eve (18:00)</span>
+                    </label>
+                    <label class="inline-flex items-center gap-1 cursor-pointer">
+                        <input type="checkbox" class="time-check rounded text-teal-600 focus:ring-teal-500" value="night" ${times.includes('night') ? 'checked' : ''}>
+                        <span>Night (21:00)</span>
+                    </label>
+                </div>
+            </td>
+            <td class="py-2.5 px-3">
+                <div class="flex items-center gap-1">
+                    <input type="number" min="1" max="365" class="med-duration w-16 px-2 py-1 rounded-lg border border-slate-300 text-xs font-bold text-center"
+                        value="${item.duration_days || 30}">
+                    <span class="text-[10px] text-slate-400 font-bold">days</span>
+                </div>
+            </td>
+            <td class="py-2.5 px-3">
+                <input type="text" class="med-instructions w-full px-2.5 py-1.5 rounded-lg border border-slate-300 text-xs text-slate-700 focus:ring-1 focus:ring-brand-500"
+                    value="${item.instructions || 'Take as directed'}" placeholder="e.g. After meals">
+            </td>
+            <td class="py-2.5 px-2 text-center">
+                <button type="button" onclick="deleteRow(this)" title="Delete row" class="text-slate-400 hover:text-rose-600 p-1.5 transition">
+                    <i class="fa-regular fa-trash-can"></i>
+                </button>
+            </td>
+        `;
+        tbody.appendChild(row);
+    });
+}
+
+function deleteRow(btn) {
+    const row = btn.closest('tr');
+    if (row) {
+        row.remove();
+    }
+}
+
+function addEmptyScannedRow() {
+    const tbody = document.getElementById('scanned-table-body');
+    const row = document.createElement('tr');
+    row.className = "hover:bg-slate-50 transition scanned-row";
+    row.innerHTML = `
+        <td class="py-2.5 px-3">
+            <input type="text" class="med-name w-full px-2.5 py-1.5 rounded-lg border border-slate-300 font-bold text-xs focus:ring-1 focus:ring-brand-500"
+                placeholder="Medicine name">
+        </td>
+        <td class="py-2.5 px-3">
+            <input type="text" class="med-dosage w-full px-2.5 py-1.5 rounded-lg border border-slate-300 font-semibold text-xs focus:ring-1 focus:ring-brand-500"
+                placeholder="e.g. 500mg">
+        </td>
+        <td class="py-2.5 px-3">
+            <div class="flex flex-wrap gap-2 text-[11px] font-semibold">
+                <label class="inline-flex items-center gap-1 cursor-pointer">
+                    <input type="checkbox" class="time-check rounded text-teal-600 focus:ring-teal-500" value="morning" checked>
+                    <span>Morn (08:00)</span>
+                </label>
+                <label class="inline-flex items-center gap-1 cursor-pointer">
+                    <input type="checkbox" class="time-check rounded text-teal-600 focus:ring-teal-500" value="afternoon">
+                    <span>Noon (14:00)</span>
+                </label>
+                <label class="inline-flex items-center gap-1 cursor-pointer">
+                    <input type="checkbox" class="time-check rounded text-teal-600 focus:ring-teal-500" value="evening">
+                    <span>Eve (18:00)</span>
+                </label>
+                <label class="inline-flex items-center gap-1 cursor-pointer">
+                    <input type="checkbox" class="time-check rounded text-teal-600 focus:ring-teal-500" value="night">
+                    <span>Night (21:00)</span>
+                </label>
+            </div>
+        </td>
+        <td class="py-2.5 px-3">
+            <div class="flex items-center gap-1">
+                <input type="number" min="1" max="365" class="med-duration w-16 px-2 py-1 rounded-lg border border-slate-300 text-xs font-bold text-center"
+                    value="30">
+                <span class="text-[10px] text-slate-400 font-bold">days</span>
+            </div>
+        </td>
+        <td class="py-2.5 px-3">
+            <input type="text" class="med-instructions w-full px-2.5 py-1.5 rounded-lg border border-slate-300 text-xs text-slate-700 focus:ring-1 focus:ring-brand-500"
+                value="Take as prescribed by doctor" placeholder="e.g. After meals">
+        </td>
+        <td class="py-2.5 px-2 text-center">
+            <button type="button" onclick="deleteRow(this)" title="Delete row" class="text-slate-400 hover:text-rose-600 p-1.5 transition">
+                <i class="fa-regular fa-trash-can"></i>
+            </button>
+        </td>
+    `;
+    tbody.appendChild(row);
+}
+
+async function saveConfirmedMedicines() {
+    const rows = document.querySelectorAll('.scanned-row');
+    if (rows.length === 0) {
+        alert("No medicines listed to save.");
+        return;
+    }
+
+    const payloadMedicines = [];
+    let hasInvalidName = false;
+
+    rows.forEach(row => {
+        const nameInput = row.querySelector('.med-name');
+        const dosageInput = row.querySelector('.med-dosage');
+        const durationInput = row.querySelector('.med-duration');
+        const instructionsInput = row.querySelector('.med-instructions');
+        
+        const name = nameInput ? nameInput.value.trim() : '';
+        const dosage = dosageInput ? dosageInput.value.trim() : '';
+        const duration_days = durationInput ? parseInt(durationInput.value) || 30 : 30;
+        const instructions = instructionsInput ? instructionsInput.value.trim() : '';
+
+        // Collect checked times
+        const timeBoxes = row.querySelectorAll('.time-check:checked');
+        const times = Array.from(timeBoxes).map(cb => cb.value);
+
+        if (!name || name.toLowerCase() === 'unclear') {
+            hasInvalidName = true;
+            nameInput.classList.add('border-rose-500', 'bg-rose-50');
+        }
+
+        payloadMedicines.push({
+            name: name || 'Prescribed Medicine',
+            dosage: dosage || 'As directed',
+            times: times.length > 0 ? times : ['morning'],
+            duration_days: duration_days,
+            instructions: instructions || 'Take as prescribed by doctor'
+        });
+    });
+
+    if (hasInvalidName) {
+        if (!confirm("Some medicine names are unclear or blank. Do you want to save them with generic names, or cancel to edit them?")) {
+            return;
+        }
+    }
+
+    const saveBtn = document.getElementById('confirm-save-btn');
+    const originalText = saveBtn.innerHTML;
+    saveBtn.disabled = true;
+    saveBtn.innerHTML = `<i class="fa-solid fa-spinner fa-spin mr-1"></i> Saving ${payloadMedicines.length} Medicines...`;
+
+    try {
+        const response = await fetch('/medicines/confirm-batch', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ medicines: payloadMedicines })
+        });
+
+        const data = await response.json();
+        if (response.ok && data.status === 'success') {
+            window.location.href = data.redirect_url || '/medicines?success=Successfully+saved+prescribed+medicines';
+        } else {
+            alert(data.detail || data.error || 'Failed to save confirmed medicines.');
+            saveBtn.disabled = false;
+            saveBtn.innerHTML = originalText;
+        }
+    } catch (e) {
+        alert('Network error while saving medicines.');
+        saveBtn.disabled = false;
+        saveBtn.innerHTML = originalText;
+    }
+}
+</script>
+{% endblock %}

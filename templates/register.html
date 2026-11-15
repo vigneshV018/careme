@@ -1,0 +1,124 @@
+{% extends "base.html" %}
+
+{% block title %}Register - CareMe{% endblock %}
+
+{% block content %}
+<div class="max-w-xl mx-auto py-6">
+    <div class="text-center mb-6">
+        <h1 class="text-2xl font-extrabold text-slate-900">Create your CareMe Account</h1>
+        <p class="text-slate-500 text-sm mt-1">Connect your loved ones with proactive healthcare oversight</p>
+    </div>
+
+    {% if error %}
+    <div class="mb-4 bg-rose-50 border border-rose-200 text-rose-800 text-xs font-semibold px-4 py-3 rounded-2xl flex items-center gap-2">
+        <i class="fa-solid fa-triangle-exclamation text-rose-500"></i>
+        <span>{{ error }}</span>
+    </div>
+    {% endif %}
+
+    <div class="bg-white rounded-3xl border border-slate-200 shadow-xl p-6 sm:p-8">
+        <form method="POST" action="/auth/register" class="space-y-4">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token(request) }}">
+
+            <div>
+                <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Your Full Name *</label>
+                <input type="text" name="name" required placeholder="e.g. Lakshmi Devi, Arun Kumar"
+                    class="w-full px-4 py-2.5 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-brand-500 text-sm">
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Email Address *</label>
+                    <input type="email" name="email" required placeholder="you@domain.com"
+                        class="w-full px-4 py-2.5 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-brand-500 text-sm">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Phone Number</label>
+                    <input type="tel" name="phone" placeholder="+91 98765 43210"
+                        class="w-full px-4 py-2.5 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-brand-500 text-sm">
+                </div>
+            </div>
+
+            <div>
+                <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Password * (minimum 8 characters)</label>
+                <input type="password" name="password" required minlength="8" placeholder="••••••••"
+                    class="w-full px-4 py-2.5 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-brand-500 text-sm">
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Role *</label>
+                    <select name="role" id="role-select" onchange="toggleCirclePasscodeField()" class="w-full px-3 py-2.5 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-brand-500 text-sm bg-white font-medium">
+                        <option value="elder">Elder</option>
+                        <option value="family" selected>Family Member</option>
+                        <option value="caregiver">Caregiver</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 uppercase mb-1">City</label>
+                    <input type="text" name="city" placeholder="e.g. Coimbatore"
+                        class="w-full px-4 py-2.5 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-brand-500 text-sm">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Age</label>
+                    <input type="number" name="age" placeholder="e.g. 75"
+                        class="w-full px-4 py-2.5 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-brand-500 text-sm">
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div id="pin-field-wrapper">
+                    <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Quick 4-Digit PIN (For Elders)</label>
+                    <input type="text" name="pin" maxlength="4" placeholder="e.g. 1234"
+                        class="w-full px-4 py-2.5 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-brand-500 text-sm tracking-widest text-center">
+                    <p class="text-[11px] text-slate-400 mt-1">Allows 1-tap elder login without typing password</p>
+                </div>
+                <div id="circle-code-wrapper">
+                    <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Care Passcode (6 digits)</label>
+                    <input type="text" name="circle_passcode" maxlength="6" value="{% if demo_mode %}482915{% endif %}" placeholder="e.g. 482915"
+                        class="w-full px-4 py-2.5 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-brand-500 text-sm tracking-widest text-center font-mono">
+                    {% if demo_mode %}
+                    <p class="text-[11px] text-slate-400 mt-1">Lakshmi's demo circle passcode: <code>482915</code></p>
+                    {% else %}
+                    <p class="text-[11px] text-slate-400 mt-1">Enter the 6-digit code provided by your elder</p>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Mandatory Consent Checkbox -->
+            <div class="bg-slate-50 border border-slate-200 rounded-2xl p-4 flex items-start gap-3 mt-2">
+                <input type="checkbox" name="medical_consent" id="consent-check" required
+                    class="mt-1 w-4 h-4 text-teal-600 rounded border-slate-300 focus:ring-teal-500 cursor-pointer">
+                <label for="consent-check" class="text-xs text-slate-700 leading-snug cursor-pointer font-medium">
+                    I understand CareMe is not a medical device, does not give medical advice and does not replace emergency services (112).
+                    Read our <a href="/privacy" target="_blank" class="text-brand-600 font-bold underline">Privacy Notice & Safety Guidelines</a>.
+                </label>
+            </div>
+
+            <button type="submit" class="w-full py-3 bg-brand-600 hover:bg-brand-700 active:scale-95 text-white font-bold rounded-xl shadow-md transition text-sm mt-4">
+                Create Account & Enter CareMe
+            </button>
+        </form>
+
+        <div class="border-t border-slate-200 mt-6 pt-4 text-center text-xs text-slate-600">
+            Already have an account? <a href="/auth/login" class="font-bold text-brand-600 hover:underline">Log in here</a>
+        </div>
+    </div>
+</div>
+
+<script>
+function toggleCirclePasscodeField() {
+    const role = document.getElementById('role-select').value;
+    const circleWrapper = document.getElementById('circle-code-wrapper');
+    const pinWrapper = document.getElementById('pin-field-wrapper');
+    if (role === 'elder') {
+        circleWrapper.style.display = 'none';
+        pinWrapper.style.display = 'block';
+    } else {
+        circleWrapper.style.display = 'block';
+        pinWrapper.style.display = 'none';
+    }
+}
+toggleCirclePasscodeField();
+</script>
+{% endblock %}

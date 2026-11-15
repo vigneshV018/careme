@@ -1,0 +1,32 @@
+services:
+  - type: web
+    name: careme
+    runtime: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn main:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: APP_NAME
+        value: CareMe
+      - key: APP_TAGLINE
+        value: "Care from anywhere. Connected by CareMe."
+      - key: SECRET_KEY
+        generateValue: true
+      - key: DATABASE_URL
+        value: "sqlite:///./caresync.db"
+      - key: DEMO_MODE
+        value: "true"
+      - key: ESCALATE_1_MIN
+        value: "30"
+      - key: ESCALATE_2_MIN
+        value: "120"
+      - key: GEMINI_MODEL
+        value: "gemini-2.5-flash"
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: SMTP_USER
+        sync: false
+      - key: SMTP_PASS
+        sync: false
+      - key: TEST_EMAIL
+        sync: false
+
